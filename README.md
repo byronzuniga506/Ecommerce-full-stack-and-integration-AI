@@ -96,8 +96,10 @@ cd ecommerce-fullstack
 
 ### Backend Setup:
 
- Navigate to Backend
+- Navigate to Backend
+```
 cd Backend
+```
 
 Create virtual environment
 python -m venv venv
