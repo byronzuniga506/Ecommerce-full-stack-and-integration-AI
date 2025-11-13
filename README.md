@@ -8,6 +8,7 @@ A modern e-commerce platform with AI-powered chatbot, seller management system, 
 ![Flask](https://img.shields.io/badge/flask-3.0-green.svg)
 
 ## 📁 Project Structure
+```
 ecommerce-project/
 ├── Backend/ # Flask REST API (Python)
 │ ├── app.py # Main Flask application
@@ -21,6 +22,7 @@ ecommerce-project/
 └── sql/ # Database scripts
 ├── SingupDB.sql # User database
 └── seller_DB.sql # Seller database
+```
 
 
 ## ✨ Features
