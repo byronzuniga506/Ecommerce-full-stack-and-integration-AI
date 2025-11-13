@@ -82,16 +82,18 @@ ecommerce-project/
 
 ### Prerequisites
 ```
-** Python 3.8+ **
+Python 3.8+
 Node.js 16+
 SQL Server
 Ollama
-Git
-Clone the Repository:
+Git 
+```
 
+### Clone the Repository:
+```
 git clone https://github.com/ShashankGowni/ecommerce-fullstack.git
 cd ecommerce-fullstack
-
+```
 Backend Setup:
 
 # Navigate to Backend
