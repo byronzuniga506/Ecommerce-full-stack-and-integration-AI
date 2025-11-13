@@ -8,7 +8,7 @@ A modern e-commerce platform with AI-powered chatbot, seller management system, 
 ![Flask](https://img.shields.io/badge/flask-3.0-green.svg)
 
 ## 📁 Project Structure
-```
+
 ecommerce-project/
 ├── Backend/ # Flask REST API (Python)
 │ ├── app.py # Main Flask application
@@ -22,8 +22,6 @@ ecommerce-project/
 └── sql/ # Database scripts
 ├── SingupDB.sql # User database
 └── seller_DB.sql # Seller database
-```
-
 
 ## ✨ Features
 
@@ -309,12 +307,3 @@ Made with ❤️ by Shashank Gowni
 1. **Copy everything above** (from `# 🛍️ MyStore` to the end)
 2. **Create the file:**
    ```
-   notepad README.md
-Paste all the content
-Save (Ctrl+S) and close
-Add to Git:
-
-
-git add README.md
-git commit --amend --no-edit
-git push -u origin main
