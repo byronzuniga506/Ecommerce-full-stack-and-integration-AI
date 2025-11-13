@@ -47,6 +47,43 @@ ecommerce-project/
 - 📩 **Contact Management** - Handle customer inquiries
 - 📊 **System Monitoring** - Overview of platform activity
 
+
+## 📸 Images
+
+Below are some images showcasing the features of the platform:
+
+### Signup Page:
+![Signup Page](./Images/signup.png)
+
+### Login Page :
+![Login Page](./Images/Login.png)
+
+### Home Page:
+![Home Page](./Images/Home.png)
+
+### Seller Dashboard:
+![Seller Dashboard](./Images/Seller_dashboard.png)
+
+### Seller Login:
+![Seller Login](./Images/seller_login.png)
+
+### Add New Product:
+![Add New Product](./Images/Add_new_product.png)
+
+### Cart Page:
+![Cart Page](./Images/Cart_page%20.png)
+
+### Chatbot Interaction:
+- Chatbot :
+
+![Chatbot ](./Images/Chatbot.png)
+
+- Chatbot Responses :
+
+![Chatbot Responses](./Images/Chatbot_communication.png)
+
+
+
 ## 🛠️ Tech Stack
 
 ### Backend
