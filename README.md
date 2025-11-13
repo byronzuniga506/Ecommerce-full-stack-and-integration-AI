@@ -88,10 +88,11 @@ SQL Server
 Ollama
 Git 
 ```
-<b><p>Clone the Repository:</p><b>
-
+### Clone the Repository:
+```
 git clone https://github.com/ShashankGowni/ecommerce-fullstack.git
 cd ecommerce-fullstack
+```
 
 ### Backend Setup:
 
