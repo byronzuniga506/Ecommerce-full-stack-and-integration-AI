@@ -96,69 +96,83 @@ cd ecommerce-fullstack
 
 ### Backend Setup:
 
-- Navigate to Backend
+**Navigate to Backend**
 ```
 cd Backend
 ```
 
-Create virtual environment
+ **Create virtual environment** 
+ ```
 python -m venv venv
 
  Activate virtual environment
+
  Windows:
 venv\Scripts\activate
  Mac/Linux:
 source venv/bin/activate
+```
 
- Install dependencies
+**Install dependencies**
+```
 pip install -r requirements.txt
+```
 
-.env file
+**.env file:**
+```
 Email Configuration
 EMAIL_ADDRESS=your-email@gmail.com
 EMAIL_PASSWORD=your-gmail-app-password
 
  Database Configuration
 server=YOUR-SERVER-NAME\SQLEXPRESS
-database=SignupDB
-seller_database=SellerDB
-
-Run Backend:
+database=your-database
+seller_database=your-seller_database
+```
+**Run Backend:**
+```
 python app.py
-
+```
 🌐 Backend runs on http://localhost:5000
 
-Frontend Setup
+**Frontend Setup**
 
- Navigate to frontend
+- Navigate to frontend:
+```
 cd frontend
+```
 
- Install dependencies
+- Install dependencies:
+```
 npm install
-
- Run development server
+```
+-  Run development server:
+```
 npm run dev
-
+```
 🌐 Frontend runs on http://localhost:5173
 
-Database Setup:
+**Database Setup:** 
 
-Open SQL Server Management Studio
-Execute scripts from sql/ folder:
+- Open SQL Server Management Studio
+- Execute scripts from sql/ folder:
     SingupDB.sql - Creates user database and tables
     seller_DB.sql - Creates seller database and tables
 
 
-Ollama Setup (AI Chatbot)
+**Ollama Setup (AI Chatbot)**
 
 
- Install Ollama from https://ollama.ai/
+- Install Ollama from https://ollama.ai/
 
- Pull the model
-ollama pull llama3.2:1b
-
- Verify installation
+**Pull the model**
+```
+  ollama pull llama3.2:1b
+```
+ **Verify installation**
+ ```
 ollama list
+```
 
 
 Gmail SMTP Configuration
@@ -170,119 +184,123 @@ Select Mail and generate password
 Copy the 16-character password
 Add to .env file
 
-🔌 API Endpoints
-Authentication
+**🔌 API Endpoints**
+
+**Authentication**
 
 
-POST   /signup          - User registration
-POST   /login           - User login
-POST   /send-otp        - Send OTP verification
-POST   /verify-otp      - Verify OTP code
-Seller Management
+- POST   /signup          - User registration
+- POST   /login           - User login
+- POST   /send-otp        - Send OTP verification
+- POST   /verify-otp      - Verify OTP code
+
+**Seller Management**
 
 
-POST   /seller-signup         - Seller registration
-POST   /seller-login          - Seller login
-GET    /seller-products       - Get seller's products
-POST   /check-seller-status   - Check approval status
-GET    /seller-activity       - Get activity logs
-POST   /update-seller-status  - Approve/reject seller (admin)
-Products
+- POST   /seller-signup         - Seller registration
+- POST   /seller-login          - Seller login
+- GET    /seller-products       - Get seller's products
+- POST   /check-seller-status   - Check approval status
+- GET    /seller-activity       - Get activity logs
+- POST   /update-seller-status  - Approve/reject seller (admin)
+
+**Products**
 
 
-GET    /products              - Get all published products
-GET    /products/<id>         - Get single product
-POST   /add-product           - Add new product (seller)
-PUT    /products/<id>         - Update product
-DELETE /products/<id>         - Delete product
-PATCH  /products/<id>/publish   - Publish product
-PATCH  /products/<id>/unpublish - Unpublish product
-Orders
+- GET    /products              - Get all published products
+- GET    /products/<id>         - Get single product
+- POST   /add-product           - Add new product (seller)
+- PUT    /products/<id>         - Update product
+- DELETE /products/<id>         - Delete product
+- PATCH  /products/<id>/publish   - Publish product
+- PATCH  /products/<id>/unpublish - Unpublish product
+- Orders
 
 
-POST   /save-order            - Save order to database
-POST   /send-order-email      - Send order confirmation
-GET    /get-orders/<email>    - Get user's orders
-Chatbot (AI)
+- POST   /save-order            - Save order to database
+- POST   /send-order-email      - Send order confirmation
+- GET    /get-orders/<email>    - Get user's orders
+
+**Chatbot (AI)**
 
 
-POST   /chat                  - Basic AI chat
-POST   /chat-with-history     - Chat with conversation context
-POST   /chat-product-search   - AI-powered product search
-Contact
+- POST   /chat                  - Basic AI chat
+- POST   /chat-with-history     - Chat with conversation context
+- POST   /chat-product-search   - AI-powered product search
+
+**Contact**
 
 
-POST   /contact-us                 - Submit contact form
-GET    /admin/contact-messages     - Get all messages (admin)
+- POST   /contact-us                 - Submit contact form
+- GET    /admin/contact-messages     - Get all messages (admin)
 
+**🔒 Security Features**
+- Password hashing with bcrypt
+- OTP verification for signup
+- Environment variables for sensitive data
+- SQL injection protection (parameterized queries)
+- Session management
+- Secure authentication flow
 
+**Troubleshooting**
+**Backend Issues**
 
-
-🔒 Security Features
- Password hashing with bcrypt
-OTP verification for signup
- Environment variables for sensitive data
- SQL injection protection (parameterized queries)
- CORS configuration
- Email verification
- Session management
- Secure authentication flow
-
-Troubleshooting
-Backend Issues
 pyodbc installation fails:
-
-
-
+```
  Install Microsoft C++ Build Tools
-Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-Then: pip install pyodbc
-Email not sending:
+```
+**Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/**
+
+<b><p>Then: pip install pyodbc</p></b>
+
+**Email not sending:**
 
  Check Gmail App Password is correct:
-Verify 2FA is enabled on Gmail
-Check SMTP settings in .env
-Database connection error:
+  - Verify 2FA is enabled on Gmail
+  - Check SMTP settings in .env
+  - Database connection error:
 
-Verify SQL Server is running
-Check server name in .env
-Ensure databases are created
-Frontend Issues
-Module not found:
+- Verify SQL Server is running
+- Check server name in .env
+- Ensure databases are created
+- Frontend Issues
+
+**Module not found:**
 
 
 
-Delete node_modules and reinstall
+**Delete node_modules and reinstall:**
+```
 rm -rf node_modules
 npm install
-Port already in use:
+```
+**Port already in use:**
 
+- Change port in vite.config.js
+- server: { port: 3000 }
 
-
-Change port in vite.config.js
-server: { port: 3000 }
-🤝 Contributing
+**🤝 Contributing**
 Contributions are welcome! Please follow these steps:
 
-Fork the repository
+**Fork the repository**
 Create a feature branch
-
-
+```
 git checkout -b feature/AmazingFeature
-Commit your changes
-ash
-
-git commit -m 'Add some AmazingFeature'
-Push to the branch
-
-
+```
+**Commit your changes**
+```
+git commit -m 'Add some AmazingFeature
+```
+**Push to the branch**
+```
 git push origin feature/AmazingFeature
-Open a Pull Request
+```
+**Open a Pull Request**
 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-👨‍💻 Author
-Shashank Gowni
+### 👨‍💻 Author
+    Shashank Gowni
 
 🐙 GitHub: @ShashankGowni
 📧 Email: shashankgowni09@gmail.com
@@ -295,12 +313,14 @@ Vite
 SQL Server
 Community contributors and testers
 📞 Support
-If you have any questions or need help, feel free to:
 
-📧 Email: shashankgowni09@gmail.com
-🐛 Open an issue on GitHub
-💬 Use the contact form in the application
-⭐ If you found this project helpful, please give it a star!
+**If you have any questions or need help, feel free to:**
+
+- 📧 Email: shashankgowni09@gmail.com
+- 🐛 Open an issue on GitHub
+- 💬 Use the contact form in the application
+- ⭐ If you found this project helpful, please give it a star!
+
 
 Made with ❤️ by Shashank Gowni
 
