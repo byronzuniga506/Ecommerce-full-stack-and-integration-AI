@@ -81,7 +81,7 @@ ecommerce-project/
 ## 🚀 Getting Started
 
 ### Prerequisites
-```bash
+```
 Python 3.8+
 Node.js 16+
 SQL Server
@@ -125,7 +125,6 @@ python app.py
 🌐 Backend runs on http://localhost:5000
 
 Frontend Setup
-Bash
 
 # Navigate to frontend
 cd frontend
@@ -146,7 +145,7 @@ Execute scripts from sql/ folder:
 
 
 Ollama Setup (AI Chatbot)
-Bash
+
 
 # Install Ollama from https://ollama.ai/
 
@@ -228,7 +227,7 @@ Troubleshooting
 Backend Issues
 pyodbc installation fails:
 
-Bash
+
 
 # Install Microsoft C++ Build Tools
 # Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
@@ -246,7 +245,7 @@ Ensure databases are created
 Frontend Issues
 Module not found:
 
-Bash
+
 
 # Delete node_modules and reinstall
 rm -rf node_modules
