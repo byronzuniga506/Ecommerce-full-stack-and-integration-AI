@@ -88,13 +88,12 @@ SQL Server
 Ollama
 Git 
 ```
+<b><p>Clone the Repository:</p><b>
 
-### Clone the Repository:
-```
 git clone https://github.com/ShashankGowni/ecommerce-fullstack.git
 cd ecommerce-fullstack
-```
-Backend Setup:
+
+### Backend Setup:
 
 # Navigate to Backend
 cd Backend
@@ -139,7 +138,8 @@ npm run dev
 
 🌐 Frontend runs on http://localhost:5173
 
-Database Setup
+Database Setup:
+
 Open SQL Server Management Studio
 Execute scripts from sql/ folder:
     SingupDB.sql - Creates user database and tables
@@ -236,7 +236,7 @@ pyodbc installation fails:
 # Then: pip install pyodbc
 Email not sending:
 
-<p><b>Check Gmail App Password is correct:</b></p>
+## Check Gmail App Password is correct:
 Verify 2FA is enabled on Gmail
 Check SMTP settings in .env
 Database connection error:
@@ -302,9 +302,3 @@ If you have any questions or need help, feel free to:
 Made with ❤️ by Shashank Gowni
 
 ---
-
-## 🎯 Now Do This:
-
-1. **Copy everything above** (from `# 🛍️ MyStore` to the end)
-2. **Create the file:**
-   ```
