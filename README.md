@@ -95,27 +95,27 @@ cd ecommerce-fullstack
 
 ### Backend Setup:
 
-# Navigate to Backend
+ Navigate to Backend
 cd Backend
 
-# Create virtual environment
+Create virtual environment
 python -m venv venv
 
-# Activate virtual environment
-# Windows:
+ Activate virtual environment
+ Windows:
 venv\Scripts\activate
-# Mac/Linux:
+ Mac/Linux:
 source venv/bin/activate
 
-# Install dependencies
+ Install dependencies
 pip install -r requirements.txt
 
 .env file
-# Email Configuration
+Email Configuration
 EMAIL_ADDRESS=your-email@gmail.com
 EMAIL_PASSWORD=your-gmail-app-password
 
-# Database Configuration
+ Database Configuration
 server=YOUR-SERVER-NAME\SQLEXPRESS
 database=SignupDB
 seller_database=SellerDB
@@ -127,13 +127,13 @@ python app.py
 
 Frontend Setup
 
-# Navigate to frontend
+ Navigate to frontend
 cd frontend
 
-# Install dependencies
+ Install dependencies
 npm install
 
-# Run development server
+ Run development server
 npm run dev
 
 🌐 Frontend runs on http://localhost:5173
@@ -149,12 +149,12 @@ Execute scripts from sql/ folder:
 Ollama Setup (AI Chatbot)
 
 
-# Install Ollama from https://ollama.ai/
+ Install Ollama from https://ollama.ai/
 
-# Pull the model
+ Pull the model
 ollama pull llama3.2:1b
 
-# Verify installation
+ Verify installation
 ollama list
 
 
@@ -231,12 +231,12 @@ pyodbc installation fails:
 
 
 
-# Install Microsoft C++ Build Tools
-# Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-# Then: pip install pyodbc
+ Install Microsoft C++ Build Tools
+Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+Then: pip install pyodbc
 Email not sending:
 
-## Check Gmail App Password is correct:
+ Check Gmail App Password is correct:
 Verify 2FA is enabled on Gmail
 Check SMTP settings in .env
 Database connection error:
@@ -249,14 +249,14 @@ Module not found:
 
 
 
-# Delete node_modules and reinstall
+Delete node_modules and reinstall
 rm -rf node_modules
 npm install
 Port already in use:
 
 
 
-# Change port in vite.config.js
+Change port in vite.config.js
 server: { port: 3000 }
 🤝 Contributing
 Contributions are welcome! Please follow these steps:
