@@ -82,7 +82,7 @@ ecommerce-project/
 
 ### Prerequisites
 ```
-Python 3.8+
+** Python 3.8+ **
 Node.js 16+
 SQL Server
 Ollama
@@ -234,7 +234,7 @@ pyodbc installation fails:
 # Then: pip install pyodbc
 Email not sending:
 
-Check Gmail App Password is correct
+<p><b>Check Gmail App Password is correct:</b></p>
 Verify 2FA is enabled on Gmail
 Check SMTP settings in .env
 Database connection error:
