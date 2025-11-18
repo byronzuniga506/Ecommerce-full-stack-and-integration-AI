@@ -5,7 +5,8 @@ import random
 import time
 import re
 from dotenv import load_dotenv
-import pyodbc
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import bcrypt
 import json
 from email.mime.text import MIMEText
@@ -13,16 +14,10 @@ from email.mime.multipart import MIMEMultipart
 import ollama
 import os
 
-
 load_dotenv()
-# ------------------- DATABASE SETUP -------------------
-server = os.getenv("server")
-database = os.getenv("database")
-conn_str = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes;'
 
-# Seller DB
-seller_database = os.getenv("seller_database")
-seller_conn_str = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={seller_database};Trusted_Connection=yes;'
+# ------------------- DATABASE SETUP -------------------
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # ------------------- FLASK APP -------------------
 app = Flask(__name__)
@@ -34,17 +29,22 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 # In-memory OTP store
 otp_store = {}
 
+# ------------------- DATABASE HELPER -------------------
+def get_db_connection():
+    """Get PostgreSQL database connection"""
+    return psycopg2.connect(DATABASE_URL, sslmode='require')
+
 # ------------------- HELPER FUNCTIONS -------------------
 
 def log_product_activity(product_id, seller_email, seller_name, action, product_title, old_data=None, new_data=None):
     """Log product changes to database"""
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
             INSERT INTO ProductActivityLog (product_id, seller_email, seller_name, action, product_title, old_data, new_data)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """, (
             product_id,
             seller_email,
@@ -56,10 +56,10 @@ def log_product_activity(product_id, seller_email, seller_name, action, product_
         ))
         
         conn.commit()
-        print(f"Logged activity: {action} - {product_title}")
+        print(f"✅ Logged activity: {action} - {product_title}")
         
     except Exception as e:
-        print(f" Error logging activity: {str(e)}")
+        print(f"❌ Error logging activity: {str(e)}")
     finally:
         if conn:
             conn.close()
@@ -114,17 +114,17 @@ MyStore Team
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
         
-        print(f" Email sent to {seller_email} for {action}")
+        print(f"✅ Email sent to {seller_email} for {action}")
         
     except Exception as e:
-        print(f" Error sending email: {str(e)}")
+        print(f"❌ Error sending email: {str(e)}")
 
 
 # ------------------- SIGNUP -------------------
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.json
-    print("Data",data)
+    print("📝 Data:", data)
     name = data.get("name", "").strip()
     email = data.get("email", "").strip()
     password = data.get("password", "").strip()
@@ -133,14 +133,14 @@ def signup():
         return jsonify({"error": "All fields are required"}), 400
 
     try:
-        conn = pyodbc.connect(conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Users WHERE email = ?", (email,))
+        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
         if cursor.fetchone():
             return jsonify({"error": "Email already registered"}), 400
 
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        cursor.execute("INSERT INTO Users (name, email, password) VALUES (?, ?, ?)", (name, email, hashed_password))
+        cursor.execute("INSERT INTO Users (name, email, password) VALUES (%s, %s, %s)", (name, email, hashed_password))
         conn.commit()
         return jsonify({"message": "Signup successful!"})
     except Exception as e:
@@ -163,7 +163,7 @@ def send_otp():
     otp_store[email] = {"otp": otp, "expires": time.time() + 300}
 
     try:
-        print(f"[TEST OTP] {email} -> {otp}")
+        print(f"🔑 [TEST OTP] {email} -> {otp}")
 
         with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
             smtp.starttls()
@@ -210,9 +210,9 @@ def login():
         return jsonify({"error": "Email and password are required"}), 400
 
     try:
-        conn = pyodbc.connect(conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT password, name FROM Users WHERE email = ?", (email,))
+        cursor.execute("SELECT password, name FROM Users WHERE email = %s", (email,))
         row = cursor.fetchone()
         if not row:
             return jsonify({"error": "Invalid email or password"}), 401
@@ -285,13 +285,13 @@ def save_order():
         return jsonify({"error": "Missing order information"}), 400
 
     try:
-        conn = pyodbc.connect(conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
             INSERT INTO Orders (email, fullName, totalPrice, address, city, state, pincode)
-            OUTPUT INSERTED.id
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
         """, (
             email,
             fullName,
@@ -306,7 +306,7 @@ def save_order():
         for item in items:
             cursor.execute("""
                 INSERT INTO OrderItems (order_id, title, price, quantity)
-                VALUES (?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s)
             """, (order_id, item['title'], item['price'], item['quantity']))
 
         conn.commit()
@@ -320,14 +320,13 @@ def save_order():
 @app.route("/get-orders/<email>", methods=["GET"])
 def get_orders(email):
     try:
-        conn = pyodbc.connect(conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Fetch all orders by email
         cursor.execute("""
             SELECT id, fullName, totalPrice, address, city, state, pincode
             FROM Orders
-            WHERE email = ?
+            WHERE email = %s
             ORDER BY id DESC
         """, (email,))
         orders = cursor.fetchall()
@@ -338,7 +337,7 @@ def get_orders(email):
             cursor.execute("""
                 SELECT title, price, quantity
                 FROM OrderItems
-                WHERE order_id = ?
+                WHERE order_id = %s
             """, (order_id,))
             items = cursor.fetchall()
             items_list = [
@@ -358,7 +357,7 @@ def get_orders(email):
 
         return jsonify(orders_list)
     except Exception as e:
-        print(" Error fetching orders:", str(e))
+        print("❌ Error fetching orders:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -367,7 +366,7 @@ def get_orders(email):
 @app.route("/seller-signup", methods=["POST"])
 def apply_seller():
     data = request.json
-    print(" Incoming JSON:", data)
+    print("📝 Incoming JSON:", data)
     
     name = data.get("name", "").strip()
     email = data.get("email", "").strip()
@@ -382,10 +381,10 @@ def apply_seller():
         return jsonify({"error": "Invalid email format"}), 400
 
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM Sellers WHERE email = ?", (email,))
+        cursor.execute("SELECT * FROM Sellers WHERE email = %s", (email,))
         existing = cursor.fetchone()
         if existing:
             return jsonify({"error": "This email is already registered as a seller. Please login or use a different email."}), 400
@@ -394,7 +393,7 @@ def apply_seller():
 
         cursor.execute("""
             INSERT INTO Sellers (fullname, store_name, store_description, password, email, status)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """, (name, storeName, store_description, hashed_password, email, "Pending"))
         
         conn.commit()
@@ -427,7 +426,7 @@ MyStore Team
         return jsonify({"message": "Seller application submitted successfully! Check your email for confirmation."}), 201
 
     except Exception as e:
-        print(" Error during seller signup:", str(e))
+        print("❌ Error during seller signup:", str(e))
         return jsonify({"error": f"Failed to submit application: {str(e)}"}), 500
     finally:
         if conn:
@@ -444,9 +443,9 @@ def seller_login():
         return jsonify({"error": "Email and password are required"}), 400
 
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT password, fullname, status FROM Sellers WHERE email = ?", (email,))
+        cursor.execute("SELECT password, fullname, status FROM Sellers WHERE email = %s", (email,))
         row = cursor.fetchone()
         
         if not row:
@@ -481,7 +480,7 @@ def seller_login():
             return jsonify({"error": "Invalid account status"}), 403
 
     except Exception as e:
-        print(" Error during seller login:", str(e))
+        print("❌ Error during seller login:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -490,7 +489,7 @@ def seller_login():
 @app.route("/add-product", methods=["POST"])
 def add_product():
     data = request.json
-    print("Incoming product data:", data)
+    print("📦 Incoming product data:", data)
     
     title = data.get("title", "").strip()
     price = data.get("price")
@@ -507,10 +506,10 @@ def add_product():
         return jsonify({"error": "Seller information missing"}), 400
 
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT status FROM Sellers WHERE email = ?", (seller_email,))
+        cursor.execute("SELECT status FROM Sellers WHERE email = %s", (seller_email,))
         seller = cursor.fetchone()
         
         if not seller:
@@ -524,21 +523,21 @@ def add_product():
         if not image:
             image = "https://via.placeholder.com/300x300?text=No+Image"
         
-        print(f" Saving product: {title} by {seller_name} as DRAFT")
+        print(f"💾 Saving product: {title} by {seller_name} as DRAFT")
         cursor.execute("""
             INSERT INTO Products (title, price, description, category, image, seller_email, seller_name, status)
-            OUTPUT INSERTED.id
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
         """, (title, float(price), description, category, image, seller_email, seller_name, 'draft'))
         
         product_id = cursor.fetchone()[0]
         conn.commit()
-        print(f" Product saved with ID: {product_id} (Status: draft)")
+        print(f"✅ Product saved with ID: {product_id} (Status: draft)")
 
-        #  LOG ACTIVITY
+        # LOG ACTIVITY
         log_product_activity(product_id, seller_email, seller_name, "created", title)
 
-        subject = " Product Saved as Draft"
+        subject = "📦 Product Saved as Draft"
         body = f"""
 Hello {seller_name},
 
@@ -571,7 +570,7 @@ MyStore Team
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
         
-        print(f"Email sent to {seller_email}")
+        print(f"📧 Email sent to {seller_email}")
 
         return jsonify({
             "message": "Product saved as draft! Check your email and dashboard.",
@@ -580,7 +579,7 @@ MyStore Team
         }), 201
 
     except Exception as e:
-        print(" Error adding product:", str(e))
+        print("❌ Error adding product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         if conn:
@@ -595,10 +594,10 @@ def get_seller_products():
         return jsonify({"error": "Seller email is required"}), 400
     
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT status FROM Sellers WHERE email = ?", (seller_email,))
+        cursor.execute("SELECT status FROM Sellers WHERE email = %s", (seller_email,))
         seller = cursor.fetchone()
         
         if not seller:
@@ -610,7 +609,7 @@ def get_seller_products():
         cursor.execute("""
             SELECT id, title, price, description, category, image, seller_email, seller_name, status, created_at
             FROM Products
-            WHERE seller_email = ?
+            WHERE seller_email = %s
             ORDER BY created_at DESC
         """, (seller_email,))
         
@@ -633,23 +632,23 @@ def get_seller_products():
             for row in rows
         ]
         
-        print(f" Found {len(products)} products for seller: {seller_email}")
+        print(f"✅ Found {len(products)} products for seller: {seller_email}")
         return jsonify(products), 200
         
     except Exception as e:
-        print(" Error fetching seller products:", str(e))
+        print("❌ Error fetching seller products:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# ------------------- DELETE PRODUCT (UPDATED) -------------------
+# ------------------- DELETE PRODUCT -------------------
 @app.route("/products/<int:product_id>", methods=["DELETE"])
 def delete_product(product_id):
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT title, seller_email, seller_name FROM Products WHERE id = ?", (product_id,))
+        cursor.execute("SELECT title, seller_email, seller_name FROM Products WHERE id = %s", (product_id,))
         product = cursor.fetchone()
         
         if not product:
@@ -657,15 +656,15 @@ def delete_product(product_id):
         
         title, seller_email, seller_name = product
         
-        cursor.execute("DELETE FROM Products WHERE id = ?", (product_id,))
+        cursor.execute("DELETE FROM Products WHERE id = %s", (product_id,))
         conn.commit()
         
-        print(f" Product deleted: {title} (ID: {product_id})")
+        print(f"🗑️ Product deleted: {title} (ID: {product_id})")
         
-        #  LOG ACTIVITY
+        # LOG ACTIVITY
         log_product_activity(product_id, seller_email, seller_name, "deleted", title)
         
-        #  SEND EMAIL
+        # SEND EMAIL
         send_activity_email(
             seller_email, 
             seller_name, 
@@ -677,19 +676,19 @@ def delete_product(product_id):
         return jsonify({"message": "Product deleted successfully!"}), 200
         
     except Exception as e:
-        print(" Error deleting product:", str(e))
+        print("❌ Error deleting product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# ------------------- PUBLISH PRODUCT (UPDATED) -------------------
+# ------------------- PUBLISH PRODUCT -------------------
 @app.route("/products/<int:product_id>/publish", methods=["PATCH"])
 def publish_product(product_id):
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT title, seller_email, seller_name, status FROM Products WHERE id = ?", (product_id,))
+        cursor.execute("SELECT title, seller_email, seller_name, status FROM Products WHERE id = %s", (product_id,))
         product = cursor.fetchone()
         
         if not product:
@@ -697,12 +696,12 @@ def publish_product(product_id):
         
         title, seller_email, seller_name, old_status = product
         
-        cursor.execute("UPDATE Products SET status = ? WHERE id = ?", ('published', product_id))
+        cursor.execute("UPDATE Products SET status = %s WHERE id = %s", ('published', product_id))
         conn.commit()
         
-        print(f" Product published: {title} (ID: {product_id})")
+        print(f"✅ Product published: {title} (ID: {product_id})")
         
-        #  LOG ACTIVITY
+        # LOG ACTIVITY
         log_product_activity(
             product_id, 
             seller_email, 
@@ -713,7 +712,7 @@ def publish_product(product_id):
             new_data={"status": "published"}
         )
         
-        #  SEND EMAIL
+        # SEND EMAIL
         send_activity_email(
             seller_email, 
             seller_name, 
@@ -728,19 +727,19 @@ def publish_product(product_id):
         }), 200
         
     except Exception as e:
-        print(" Error publishing product:", str(e))
+        print("❌ Error publishing product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# ------------------- UNPUBLISH PRODUCT (UPDATED) -------------------
+# ------------------- UNPUBLISH PRODUCT -------------------
 @app.route("/products/<int:product_id>/unpublish", methods=["PATCH"])
 def unpublish_product(product_id):
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT title, seller_email, seller_name, status FROM Products WHERE id = ?", (product_id,))
+        cursor.execute("SELECT title, seller_email, seller_name, status FROM Products WHERE id = %s", (product_id,))
         product = cursor.fetchone()
         
         if not product:
@@ -748,12 +747,12 @@ def unpublish_product(product_id):
         
         title, seller_email, seller_name, old_status = product
         
-        cursor.execute("UPDATE Products SET status = ? WHERE id = ?", ('draft', product_id))
+        cursor.execute("UPDATE Products SET status = %s WHERE id = %s", ('draft', product_id))
         conn.commit()
         
-        print(f" Product unpublished: {title} (ID: {product_id})")
+        print(f"🔴 Product unpublished: {title} (ID: {product_id})")
         
-        #  LOG ACTIVITY
+        # LOG ACTIVITY
         log_product_activity(
             product_id, 
             seller_email, 
@@ -764,7 +763,7 @@ def unpublish_product(product_id):
             new_data={"status": "draft"}
         )
         
-        #  SEND EMAIL
+        # SEND EMAIL
         send_activity_email(
             seller_email, 
             seller_name, 
@@ -779,7 +778,7 @@ def unpublish_product(product_id):
         }), 200
         
     except Exception as e:
-        print(" Error unpublishing product:", str(e))
+        print("❌ Error unpublishing product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -794,9 +793,9 @@ def check_seller_status():
         return jsonify({"error": "Email is required"}), 400
 
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT fullname, status FROM Sellers WHERE email = ?", (email,))
+        cursor.execute("SELECT fullname, status FROM Sellers WHERE email = %s", (email,))
         row = cursor.fetchone()
         
         if not row:
@@ -813,7 +812,7 @@ def check_seller_status():
         }), 200
 
     except Exception as e:
-        print(" Error checking seller status:", str(e))
+        print("❌ Error checking seller status:", str(e))
         return jsonify({"error": str(e), "isApproved": False}), 500
     finally:
         conn.close()
@@ -822,13 +821,13 @@ def check_seller_status():
 @app.route("/products/<int:product_id>", methods=["GET"])
 def get_single_product(product_id):
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
             SELECT id, title, price, description, category, image, seller_email, seller_name, status
             FROM Products
-            WHERE id = ?
+            WHERE id = %s
         """, (product_id,))
         
         row = cursor.fetchone()
@@ -851,12 +850,12 @@ def get_single_product(product_id):
         return jsonify(product), 200
         
     except Exception as e:
-        print(" Error fetching product:", str(e))
+        print("❌ Error fetching product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# ------------------- UPDATE PRODUCT (UPDATED) -------------------
+# ------------------- UPDATE PRODUCT -------------------
 @app.route("/products/<int:product_id>", methods=["PUT"])
 def update_product(product_id):
     data = request.json
@@ -871,13 +870,13 @@ def update_product(product_id):
         return jsonify({"error": "All required fields must be filled"}), 400
     
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
             SELECT title, price, description, category, image, seller_email, seller_name 
             FROM Products 
-            WHERE id = ?
+            WHERE id = %s
         """, (product_id,))
         product = cursor.fetchone()
         
@@ -904,15 +903,15 @@ def update_product(product_id):
         
         cursor.execute("""
             UPDATE Products 
-            SET title = ?, price = ?, description = ?, category = ?, image = ?
-            WHERE id = ?
+            SET title = %s, price = %s, description = %s, category = %s, image = %s
+            WHERE id = %s
         """, (title, float(price), description, category, image, product_id))
         
         conn.commit()
         
-        print(f" Product updated: {title} (ID: {product_id})")
+        print(f"✏️ Product updated: {title} (ID: {product_id})")
         
-        #  LOG ACTIVITY
+        # LOG ACTIVITY
         log_product_activity(
             product_id, 
             seller_email, 
@@ -938,7 +937,7 @@ def update_product(product_id):
         
         change_summary = "\n".join(changes) if changes else "No changes detected"
         
-        #  SEND EMAIL
+        # SEND EMAIL
         send_activity_email(
             seller_email, 
             seller_name, 
@@ -950,12 +949,12 @@ def update_product(product_id):
         return jsonify({"message": "Product updated successfully!"}), 200
         
     except Exception as e:
-        print(" Error updating product:", str(e))
+        print("❌ Error updating product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# ------------------- GET SELLER ACTIVITY (NEW) -------------------
+# ------------------- GET SELLER ACTIVITY -------------------
 @app.route("/seller-activity", methods=["GET"])
 def get_seller_activity():
     seller_email = request.args.get('sellerId')
@@ -964,14 +963,15 @@ def get_seller_activity():
         return jsonify({"error": "Seller email required"}), 400
     
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT TOP 50 id, product_id, action, product_title, created_at
+            SELECT id, product_id, action, product_title, created_at
             FROM ProductActivityLog
-            WHERE seller_email = ?
+            WHERE seller_email = %s
             ORDER BY created_at DESC
+            LIMIT 50
         """, (seller_email,))
         
         rows = cursor.fetchall()
@@ -990,7 +990,7 @@ def get_seller_activity():
         return jsonify(activities), 200
         
     except Exception as e:
-        print(" Error fetching seller activity:", str(e))
+        print("❌ Error fetching seller activity:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -999,7 +999,7 @@ def get_seller_activity():
 @app.route("/products", methods=["GET"])
 def get_products():
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT id, title, price, description, category, image FROM Products WHERE status = 'published'")
         rows = cursor.fetchall()
@@ -1035,10 +1035,10 @@ def update_seller_status():
         return jsonify({"error": "Invalid status. Must be Approved or Rejected"}), 400
 
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT fullname, status FROM Sellers WHERE email = ?", (email,))
+        cursor.execute("SELECT fullname, status FROM Sellers WHERE email = %s", (email,))
         seller = cursor.fetchone()
         if not seller:
             return jsonify({"error": "Seller not found"}), 404
@@ -1047,7 +1047,7 @@ def update_seller_status():
         if old_status == new_status:
             return jsonify({"message": f"Seller is already {new_status}."}), 200
 
-        cursor.execute("UPDATE Sellers SET status = ? WHERE email = ?", (new_status, email))
+        cursor.execute("UPDATE Sellers SET status = %s WHERE email = %s", (new_status, email))
         conn.commit()
 
         subject = "Seller Account Status Update"
@@ -1088,7 +1088,7 @@ MyStore Team
         return jsonify({"message": f"Seller status updated to {new_status} and email sent."})
 
     except Exception as e:
-        print(" Error updating seller status:", e)
+        print("❌ Error updating seller status:", e)
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -1109,20 +1109,18 @@ def contact_us():
         return jsonify({"error": "Invalid email format"}), 400
 
     try:
-        # Save to database
-        conn = pyodbc.connect(conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
             INSERT INTO ContactMessages (name, email, subject, message, status)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         """, (name, email, subject or "General Inquiry", message, "New"))
         
         conn.commit()
-        print(f" Contact message saved from {name} ({email})")
+        print(f"💬 Contact message saved from {name} ({email})")
 
-        # Send confirmation email to user
-        user_subject = "We Received Your Message! "
+        user_subject = "We Received Your Message! 📧"
         user_body = f"""
 Hello {name},
 
@@ -1155,9 +1153,8 @@ This is an automated confirmation email.
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
 
-        print(f" Confirmation email sent to {email}")
+        print(f"📧 Confirmation email sent to {email}")
 
-        # Send notification to admin/support team
         admin_subject = f"🔔 New Contact Message from {name}"
         admin_body = f"""
 New contact form submission:
@@ -1175,7 +1172,7 @@ Received at: {time.strftime('%B %d, %Y at %I:%M %p')}
 
         admin_msg = MIMEMultipart()
         admin_msg["From"] = EMAIL_ADDRESS
-        admin_msg["To"] = EMAIL_ADDRESS  # Send to yourself
+        admin_msg["To"] = EMAIL_ADDRESS
         admin_msg["Subject"] = admin_subject
         admin_msg.attach(MIMEText(admin_body, "plain", "utf-8"))
 
@@ -1184,7 +1181,7 @@ Received at: {time.strftime('%B %d, %Y at %I:%M %p')}
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(admin_msg)
 
-        print(f" Admin notification sent")
+        print(f"📧 Admin notification sent")
 
         return jsonify({
             "message": "Thank you for contacting us! We'll get back to you soon.",
@@ -1192,19 +1189,17 @@ Received at: {time.strftime('%B %d, %Y at %I:%M %p')}
         }), 200
 
     except Exception as e:
-        print(" Error processing contact form:", str(e))
+        print("❌ Error processing contact form:", str(e))
         return jsonify({"error": f"Failed to send message: {str(e)}"}), 500
     finally:
         if conn:
             conn.close()
 
-
-# ------------------- GET ALL CONTACT MESSAGES (ADMIN) -------------------
+# ------------------- GET ALL CONTACT MESSAGES -------------------
 @app.route("/admin/contact-messages", methods=["GET"])
 def get_contact_messages():
-    """Get all contact messages for admin dashboard"""
     try:
-        conn = pyodbc.connect(conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -1231,16 +1226,14 @@ def get_contact_messages():
         return jsonify(messages), 200
         
     except Exception as e:
-        print(" Error fetching contact messages:", str(e))
+        print("❌ Error fetching contact messages:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-import ollama
 # ------------------- CHATBOT WITH OLLAMA -------------------
 @app.route("/chat", methods=["POST"])
 def chat():
-    """AI Chatbot using Ollama"""
     data = request.json
     user_message = data.get("message", "").strip()
     
@@ -1264,9 +1257,8 @@ def chat():
         
         print("🤖 Calling Ollama with llama3.2:1b...")
         
-        # ✅ CHANGED: Use llama3.2:1b instead of llama3
         response = ollama.chat(
-            model='llama3.2:1b',  # Changed from 'llama3'
+            model='llama3.2:1b',
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_message}
@@ -1279,7 +1271,7 @@ def chat():
         
         bot_reply = response['message']['content']
         
-        print(f" Bot replied: {bot_reply[:100]}...")
+        print(f"✅ Bot replied: {bot_reply[:100]}...")
         print(f"{'='*60}\n")
         
         return jsonify({
@@ -1292,13 +1284,12 @@ def chat():
         import traceback
         error_details = traceback.format_exc()
         
-        print(f" ERROR!")
+        print(f"❌ ERROR!")
         print(f"   Type: {type(e).__name__}")
         print(f"   Message: {str(e)}")
         print(error_details)
         print(f"{'='*60}\n")
         
-        # Smart fallback
         fallback_responses = {
             "shipping": "We offer free shipping on orders over $50! Standard delivery takes 3-5 business days. 📦",
             "return": "We have a hassle-free 30-day return policy! Email support@mystore.com with your order number. 🔄",
@@ -1324,11 +1315,9 @@ def chat():
             "error_message": str(e)
         }), 200
 
-
 # ------------------- CHAT WITH CONVERSATION HISTORY -------------------
 @app.route("/chat-with-history", methods=["POST"])
 def chat_with_history():
-    """AI Chatbot with conversation history"""
     data = request.json
     user_message = data.get("message", "").strip()
     conversation_history = data.get("history", [])
@@ -1368,11 +1357,9 @@ def chat_with_history():
             "fallback": True
         }), 200
 
-
 # ------------------- SMART PRODUCT SEARCH CHATBOT -------------------
 @app.route("/chat-product-search", methods=["POST"])
 def chat_product_search():
-    """Chatbot that can search products"""
     data = request.json
     user_message = data.get("message", "").strip()
     
@@ -1380,21 +1367,20 @@ def chat_product_search():
         return jsonify({"error": "Message is required"}), 400
     
     try:
-        conn = pyodbc.connect(seller_conn_str)
+        conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Search for products
         cursor.execute("""
-            SELECT TOP 3 title, price, category, image 
+            SELECT title, price, category, image 
             FROM Products 
             WHERE status = 'published' 
-            AND (title LIKE ? OR category LIKE ? OR description LIKE ?)
+            AND (title ILIKE %s OR category ILIKE %s OR description ILIKE %s)
+            LIMIT 3
         """, (f'%{user_message}%', f'%{user_message}%', f'%{user_message}%'))
         
         products = cursor.fetchall()
         conn.close()
         
-        # If products found
         if products:
             product_info = "\n".join([
                 f"- {p[0]} (${p[1]}) in {p[2]} category"
@@ -1411,7 +1397,7 @@ We found these relevant products in our store:
 Recommend these products naturally and mention their prices. Be enthusiastic but not pushy!"""
         
             response = ollama.chat(
-                model='llama3.2:1b',  # Changed from 'llama3'
+                model='llama3.2:1b',
                 messages=[
                     {'role': 'system', 'content': enhanced_prompt},
                     {'role': 'user', 'content': user_message}
@@ -1432,7 +1418,6 @@ Recommend these products naturally and mention their prices. Be enthusiastic but
                 "success": True
             }), 200
         
-        # No products found
         system_prompt = """You are Emma, a helpful shopping assistant for MyStore. The customer is asking about products we might not have. Politely let them know and suggest browsing our categories or contacting support."""
         
         response = ollama.chat(
@@ -1450,7 +1435,7 @@ Recommend these products naturally and mention their prices. Be enthusiastic but
         }), 200
         
     except Exception as e:
-        print(f" Product Search Error: {str(e)}")
+        print(f"❌ Product Search Error: {str(e)}")
         return jsonify({
             "reply": "I'm having trouble searching products right now. Please browse our categories or contact support! 🛍️",
             "success": False
