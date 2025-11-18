@@ -21,7 +21,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # ------------------- FLASK APP -------------------
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+CORS(app)
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD") 
