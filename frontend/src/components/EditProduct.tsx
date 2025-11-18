@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import "../index.css";
+import API_URL from "../config";
 
 type ProductFormInputs = {
   title: string;
@@ -43,7 +44,7 @@ const EditProduct: React.FC = () => {
 
   const fetchProduct = async (productId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/products/${productId}`);
+      const res = await fetch(`${API_URL}/products/${productId}`);
       const product = await res.json();
       
       if (res.ok) {
@@ -91,7 +92,7 @@ const EditProduct: React.FC = () => {
     setLoading(true);
     
     try {
-      const res = await fetch(`http://localhost:5000/products/${id}`, {
+      const res = await fetch(`${API_URL}/products/${id}`,{
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

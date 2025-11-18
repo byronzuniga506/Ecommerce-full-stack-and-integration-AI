@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
+import API_URL from "../config";
 
 type ProductFormInputs = {
   title: string;
@@ -88,7 +89,7 @@ const AddProduct: React.FC = () => {
         }
       };
 
-      const res = await fetch("http://localhost:5000/add-product", {
+      const res = await fetch(`${API_URL}/add-product`,  {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(productData),

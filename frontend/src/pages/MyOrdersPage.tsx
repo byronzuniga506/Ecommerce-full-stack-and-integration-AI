@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../index.css";
-
+import API_URL from "../config";
 interface OrderItem {
   title: string;
   price: number;
@@ -34,7 +34,7 @@ const MyOrdersPage: React.FC = () => {
       }
 
       try {
-        const res = await axios.get(`http://localhost:5000/get-orders/${email}`);
+        const res = await axios.get(`${API_URL}/get-orders/${email}`);
         setOrders(res.data);
       } catch (err) {
         console.error(err);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import API_URL from "../config";
 
 interface ProtectedSellerRouteProps {
   children: React.ReactNode;
@@ -21,7 +22,7 @@ const ProtectedSellerRoute: React.FC<ProtectedSellerRouteProps> = ({ children })
 
     //  No email - not logged in
     if (!sellerEmail) {
-      setPopupMessage("⚠️ Please login first to access this page");
+      setPopupMessage(" Please login first to access this page");
       setShowPopup(true);
       setIsAuthenticated(false);
       setTimeout(() => {
@@ -51,7 +52,7 @@ const ProtectedSellerRoute: React.FC<ProtectedSellerRouteProps> = ({ children })
 
     //  Verify with backend
     try {
-      const response = await fetch("http://localhost:5000/check-seller-status", {
+      const response = await fetch(`${API_URL}/check-seller-status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: sellerEmail }),

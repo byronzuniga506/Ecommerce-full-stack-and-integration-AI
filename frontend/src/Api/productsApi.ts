@@ -1,4 +1,5 @@
 import axios from "axios";
+import API_URL from "../config";
 
 export interface Product {
   id: number;
@@ -15,24 +16,24 @@ export interface Product {
 
 export const fetchProducts = async (): Promise<Product[]> => {
   try {
-    // ✅ Fetch from Fake Store API
+    //  Fetch from Fake Store API
     const fakeStoreResponse = await axios.get<Product[]>(
       "https://fakestoreapi.com/products?limit=100"
     );
     const fakeStoreProducts = fakeStoreResponse.data;
 
-    // ✅ Fetch from your backend (seller products)
+    //  Fetch from your backend (seller products)
     let sellerProducts: Product[] = [];
     try {
       const sellerResponse = await axios.get<Product[]>(
-        "http://localhost:5000/products"
+    `${API_URL}/products`
       );
       sellerProducts = sellerResponse.data;
     } catch (error) {
       console.log("Seller backend not available, showing Fake Store products only");
     }
 
-    // ✅ Combine both arrays
+    //  Combine both arrays
     const allProducts = [...fakeStoreProducts, ...sellerProducts];
 
     console.log(`✅ Total products loaded: ${allProducts.length}`);

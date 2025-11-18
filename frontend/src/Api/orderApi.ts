@@ -1,3 +1,5 @@
+import API_URL from "../config";
+
 // src/api/orderApi.ts
 export interface OrderItem {
   id: number;
@@ -15,9 +17,9 @@ export interface AddressInfo {
   state: string;
 }
 
-const BASE_URL = "http://localhost:5000"; // Flask backend URL
+const BASE_URL = API_URL;
 
-// ✅ Save order in database
+//  Save order in database
 export const saveOrder = async (
   email: string,
   fullName: string,
@@ -37,12 +39,12 @@ export const saveOrder = async (
 
     return data;
   } catch (err: any) {
-    console.error("❌ Error saving order:", err.message);
+    console.error(" Error saving order:", err.message);
     throw err;
   }
 };
 
-// ✅ Send order confirmation email
+//  Send order confirmation email
 export const sendOrderEmail = async (
   email: string,
   fullName: string,
@@ -62,7 +64,7 @@ export const sendOrderEmail = async (
 
     return data;
   } catch (err: any) {
-    console.error("❌ Error sending order email:", err.message);
+    console.error(" Error sending order email:", err.message);
     throw err;
   }
 };

@@ -1,6 +1,6 @@
 import axios from "axios";
-
-const API_BASE_URL = "http://localhost:5000"; // backend URL (you can change later)
+import API_URL from "../config";
+const API_BASE_URL = API_URL;
 
 export const sendOtp = async (email: string) => {
   try {

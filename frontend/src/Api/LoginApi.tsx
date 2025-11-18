@@ -1,4 +1,5 @@
 import axios from 'axios'
+import API_URL from "../config";
 
 export interface LoginData{
 
@@ -8,7 +9,7 @@ export interface LoginData{
 
 export const loginUser = async  (data:LoginData) =>{
 
-    const response = axios.post("http://localhost:5000/login",data);
+    const response = axios.post(`${API_URL}/login`, data);
     return response;
 }
 

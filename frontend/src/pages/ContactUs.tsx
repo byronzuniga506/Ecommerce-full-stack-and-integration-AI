@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
+import API_URL from "../config";
 
 const ContactUs: React.FC = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const ContactUs: React.FC = () => {
     setSuccess("");
 
     try {
-      const response = await fetch("http://localhost:5000/contact-us", {
+      const response = await fetch(`${API_URL}/contact-us`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

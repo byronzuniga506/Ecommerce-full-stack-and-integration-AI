@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import API_URL from "../config"; 
 
 // ==================== TYPESCRIPT INTERFACES ====================
 interface Message {
@@ -37,9 +38,6 @@ const ChatBot = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const API_URL = 'http://localhost:5000';
-
   // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

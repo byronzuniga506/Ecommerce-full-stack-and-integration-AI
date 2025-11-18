@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../CSS/Sellerdashboard.css"; 
+import API_URL from "../config";
 
 interface Product {
   id: number;
@@ -67,7 +68,7 @@ const SellerDashboard: React.FC = () => {
   // FETCH RECENT ACTIVITY
   const fetchRecentActivity = async (email: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/seller-activity?sellerId=${email}`);
+      const res = await fetch(`${API_URL}/seller-activity?sellerId=${email}`);
       const data = await res.json();
       
       if (res.ok) {
@@ -104,7 +105,7 @@ const SellerDashboard: React.FC = () => {
 
     //  Verify with backend (optional extra security)
     try {
-      const response = await fetch("http://localhost:5000/check-seller-status", {
+      const response = await fetch(`${API_URL}/check-seller-status`,{
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -139,7 +140,7 @@ const SellerDashboard: React.FC = () => {
   const fetchMyProducts = async (email: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/seller-products?sellerId=${email}`);
+      const res = await fetch(`${API_URL}/seller-products?sellerId=${email}`);
       const data = await res.json();
       
       if (res.ok) {
@@ -173,7 +174,7 @@ const SellerDashboard: React.FC = () => {
       `Are you sure you want to delete "${title}"?\n\nThis action cannot be undone!`,
       async () => {
         try {
-          const res = await fetch(`http://localhost:5000/products/${id}`, {
+          const res = await fetch(`${API_URL}/products/${id}`, {
             method: "DELETE",
           });
 
@@ -200,7 +201,7 @@ const SellerDashboard: React.FC = () => {
       `Publish "${title}"?\n\nThis will make it visible to customers on the store.`,
       async () => {
         try {
-          const res = await fetch(`http://localhost:5000/products/${id}/publish`, {
+          const res = await fetch(`${API_URL}/products/${id}/publish`, {
             method: "PATCH",
           });
 
@@ -227,7 +228,7 @@ const SellerDashboard: React.FC = () => {
       `Unpublish "${title}"?\n\nThis will hide it from customers (back to draft).`,
       async () => {
         try {
-          const res = await fetch(`http://localhost:5000/products/${id}/unpublish`, {
+          const res = await fetch(`${API_URL}/products/${id}/unpublish`, {
             method: "PATCH",
           });
 

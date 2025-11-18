@@ -1,7 +1,6 @@
 import axios from "axios";
-
-const BASE_URL = "http://localhost:5000";
+import API_URL from "../config";
 
 export const sellerLogin = async (data: { email: string; password: string }) => {
-  return await axios.post(`${BASE_URL}/seller-login`, data);
+  return await axios.post(`${API_URL}/seller-login`, data);
 };
