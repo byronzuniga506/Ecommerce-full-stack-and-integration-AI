@@ -11,7 +11,7 @@ import bcrypt
 import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import ollama
+# import ollama
 import os
 
 load_dotenv()
@@ -1231,215 +1231,215 @@ def get_contact_messages():
     finally:
         conn.close()
 
-# ------------------- CHATBOT WITH OLLAMA -------------------
-@app.route("/chat", methods=["POST"])
-def chat():
-    data = request.json
-    user_message = data.get("message", "").strip()
+# # ------------------- CHATBOT WITH OLLAMA -------------------
+# @app.route("/chat", methods=["POST"])
+# def chat():
+#     data = request.json
+#     user_message = data.get("message", "").strip()
     
-    if not user_message:
-        return jsonify({"error": "Message is required"}), 400
+#     if not user_message:
+#         return jsonify({"error": "Message is required"}), 400
     
-    print(f"\n{'='*60}")
-    print(f"📨 Incoming message: {user_message}")
-    print(f"{'='*60}")
+#     print(f"\n{'='*60}")
+#     print(f"📨 Incoming message: {user_message}")
+#     print(f"{'='*60}")
     
-    try:
-        system_prompt = """You are Emma, a friendly AI customer support assistant for MyStore, an e-commerce platform. 
-        You help customers with:
-        - Product inquiries
-        - Order tracking
-        - Return policies
-        - Account issues
-        - General shopping questions
+#     try:
+#         system_prompt = """You are Emma, a friendly AI customer support assistant for MyStore, an e-commerce platform. 
+#         You help customers with:
+#         - Product inquiries
+#         - Order tracking
+#         - Return policies
+#         - Account issues
+#         - General shopping questions
         
-        Be friendly, professional, and concise. If you don't know something, admit it and suggest contacting support."""
+#         Be friendly, professional, and concise. If you don't know something, admit it and suggest contacting support."""
         
-        print("🤖 Calling Ollama with llama3.2:1b...")
+#         print("🤖 Calling Ollama with llama3.2:1b...")
         
-        response = ollama.chat(
-            model='llama3.2:1b',
-            messages=[
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_message}
-            ],
-            options={
-                'temperature': 0.7,
-                'num_predict': 150
-            }
-        )
+#         response = ollama.chat(
+#             model='llama3.2:1b',
+#             messages=[
+#                 {'role': 'system', 'content': system_prompt},
+#                 {'role': 'user', 'content': user_message}
+#             ],
+#             options={
+#                 'temperature': 0.7,
+#                 'num_predict': 150
+#             }
+#         )
         
-        bot_reply = response['message']['content']
+#         bot_reply = response['message']['content']
         
-        print(f"✅ Bot replied: {bot_reply[:100]}...")
-        print(f"{'='*60}\n")
+#         print(f"✅ Bot replied: {bot_reply[:100]}...")
+#         print(f"{'='*60}\n")
         
-        return jsonify({
-            "reply": bot_reply,
-            "success": True,
-            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
-        }), 200
+#         return jsonify({
+#             "reply": bot_reply,
+#             "success": True,
+#             "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
+#         }), 200
         
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
+#     except Exception as e:
+#         import traceback
+#         error_details = traceback.format_exc()
         
-        print(f"❌ ERROR!")
-        print(f"   Type: {type(e).__name__}")
-        print(f"   Message: {str(e)}")
-        print(error_details)
-        print(f"{'='*60}\n")
+#         print(f"❌ ERROR!")
+#         print(f"   Type: {type(e).__name__}")
+#         print(f"   Message: {str(e)}")
+#         print(error_details)
+#         print(f"{'='*60}\n")
         
-        fallback_responses = {
-            "shipping": "We offer free shipping on orders over $50! Standard delivery takes 3-5 business days. 📦",
-            "return": "We have a hassle-free 30-day return policy! Email support@mystore.com with your order number. 🔄",
-            "payment": "We accept all major credit cards, PayPal, and debit cards. All transactions are SSL secured. 💳",
-            "default": "I'm having trouble connecting right now. Please email us at support@mystore.com or call 1-800-MYSTORE. We're here 24/7! 😊"
-        }
+#         fallback_responses = {
+#             "shipping": "We offer free shipping on orders over $50! Standard delivery takes 3-5 business days. 📦",
+#             "return": "We have a hassle-free 30-day return policy! Email support@mystore.com with your order number. 🔄",
+#             "payment": "We accept all major credit cards, PayPal, and debit cards. All transactions are SSL secured. 💳",
+#             "default": "I'm having trouble connecting right now. Please email us at support@mystore.com or call 1-800-MYSTORE. We're here 24/7! 😊"
+#         }
         
-        user_lower = user_message.lower()
-        if any(word in user_lower for word in ['ship', 'delivery', 'track']):
-            fallback = fallback_responses['shipping']
-        elif any(word in user_lower for word in ['return', 'refund', 'exchange']):
-            fallback = fallback_responses['return']
-        elif any(word in user_lower for word in ['pay', 'payment', 'credit', 'card']):
-            fallback = fallback_responses['payment']
-        else:
-            fallback = fallback_responses['default']
+#         user_lower = user_message.lower()
+#         if any(word in user_lower for word in ['ship', 'delivery', 'track']):
+#             fallback = fallback_responses['shipping']
+#         elif any(word in user_lower for word in ['return', 'refund', 'exchange']):
+#             fallback = fallback_responses['return']
+#         elif any(word in user_lower for word in ['pay', 'payment', 'credit', 'card']):
+#             fallback = fallback_responses['payment']
+#         else:
+#             fallback = fallback_responses['default']
         
-        return jsonify({
-            "reply": fallback,
-            "success": False,
-            "fallback": True,
-            "error_type": type(e).__name__,
-            "error_message": str(e)
-        }), 200
+#         return jsonify({
+#             "reply": fallback,
+#             "success": False,
+#             "fallback": True,
+#             "error_type": type(e).__name__,
+#             "error_message": str(e)
+#         }), 200
 
-# ------------------- CHAT WITH CONVERSATION HISTORY -------------------
-@app.route("/chat-with-history", methods=["POST"])
-def chat_with_history():
-    data = request.json
-    user_message = data.get("message", "").strip()
-    conversation_history = data.get("history", [])
+# # ------------------- CHAT WITH CONVERSATION HISTORY -------------------
+# @app.route("/chat-with-history", methods=["POST"])
+# def chat_with_history():
+#     data = request.json
+#     user_message = data.get("message", "").strip()
+#     conversation_history = data.get("history", [])
     
-    if not user_message:
-        return jsonify({"error": "Message is required"}), 400
+#     if not user_message:
+#         return jsonify({"error": "Message is required"}), 400
     
-    try:
-        system_prompt = """You are Emma, MyStore's friendly AI assistant. You help customers with shopping, orders, returns, and general questions. Be helpful, concise, and friendly!"""
+#     try:
+#         system_prompt = """You are Emma, MyStore's friendly AI assistant. You help customers with shopping, orders, returns, and general questions. Be helpful, concise, and friendly!"""
         
-        messages = [{'role': 'system', 'content': system_prompt}]
-        messages.extend(conversation_history[-6:])
-        messages.append({'role': 'user', 'content': user_message})
+#         messages = [{'role': 'system', 'content': system_prompt}]
+#         messages.extend(conversation_history[-6:])
+#         messages.append({'role': 'user', 'content': user_message})
     
-        response = ollama.chat(
-            model='llama3.2:1b',  
-            messages=messages,
-            options={
-                'temperature': 0.7,
-                'num_predict': 150
-            }
-        )
+#         response = ollama.chat(
+#             model='llama3.2:1b',  
+#             messages=messages,
+#             options={
+#                 'temperature': 0.7,
+#                 'num_predict': 150
+#             }
+#         )
         
-        bot_reply = response['message']['content']
+#         bot_reply = response['message']['content']
         
-        return jsonify({
-            "reply": bot_reply,
-            "success": True,
-            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
-        }), 200
+#         return jsonify({
+#             "reply": bot_reply,
+#             "success": True,
+#             "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
+#         }), 200
         
-    except Exception as e:
-        print(f"❌ Chatbot Error: {str(e)}")
-        return jsonify({
-            "reply": "I'm experiencing technical difficulties. Please try again or contact support@mystore.com 💙",
-            "success": False,
-            "fallback": True
-        }), 200
+#     except Exception as e:
+#         print(f"❌ Chatbot Error: {str(e)}")
+#         return jsonify({
+#             "reply": "I'm experiencing technical difficulties. Please try again or contact support@mystore.com 💙",
+#             "success": False,
+#             "fallback": True
+#         }), 200
 
-# ------------------- SMART PRODUCT SEARCH CHATBOT -------------------
-@app.route("/chat-product-search", methods=["POST"])
-def chat_product_search():
-    data = request.json
-    user_message = data.get("message", "").strip()
+# # ------------------- SMART PRODUCT SEARCH CHATBOT -------------------
+# @app.route("/chat-product-search", methods=["POST"])
+# def chat_product_search():
+#     data = request.json
+#     user_message = data.get("message", "").strip()
     
-    if not user_message:
-        return jsonify({"error": "Message is required"}), 400
+#     if not user_message:
+#         return jsonify({"error": "Message is required"}), 400
     
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+#     try:
+#         conn = get_db_connection()
+#         cursor = conn.cursor()
         
-        cursor.execute("""
-            SELECT title, price, category, image 
-            FROM Products 
-            WHERE status = 'published' 
-            AND (title ILIKE %s OR category ILIKE %s OR description ILIKE %s)
-            LIMIT 3
-        """, (f'%{user_message}%', f'%{user_message}%', f'%{user_message}%'))
+#         cursor.execute("""
+#             SELECT title, price, category, image 
+#             FROM Products 
+#             WHERE status = 'published' 
+#             AND (title ILIKE %s OR category ILIKE %s OR description ILIKE %s)
+#             LIMIT 3
+#         """, (f'%{user_message}%', f'%{user_message}%', f'%{user_message}%'))
         
-        products = cursor.fetchall()
-        conn.close()
+#         products = cursor.fetchall()
+#         conn.close()
         
-        if products:
-            product_info = "\n".join([
-                f"- {p[0]} (${p[1]}) in {p[2]} category"
-                for p in products
-            ])
+#         if products:
+#             product_info = "\n".join([
+#                 f"- {p[0]} (${p[1]}) in {p[2]} category"
+#                 for p in products
+#             ])
             
-            enhanced_prompt = f"""You are Emma, MyStore's AI assistant. 
+#             enhanced_prompt = f"""You are Emma, MyStore's AI assistant. 
 
-The customer asked: "{user_message}"
+# The customer asked: "{user_message}"
 
-We found these relevant products in our store:
-{product_info}
+# We found these relevant products in our store:
+# {product_info}
 
-Recommend these products naturally and mention their prices. Be enthusiastic but not pushy!"""
+# Recommend these products naturally and mention their prices. Be enthusiastic but not pushy!"""
         
-            response = ollama.chat(
-                model='llama3.2:1b',
-                messages=[
-                    {'role': 'system', 'content': enhanced_prompt},
-                    {'role': 'user', 'content': user_message}
-                ],
-                options={'temperature': 0.8, 'num_predict': 200}
-            )
+#             response = ollama.chat(
+#                 model='llama3.2:1b',
+#                 messages=[
+#                     {'role': 'system', 'content': enhanced_prompt},
+#                     {'role': 'user', 'content': user_message}
+#                 ],
+#                 options={'temperature': 0.8, 'num_predict': 200}
+#             )
             
-            return jsonify({
-                "reply": response['message']['content'],
-                "products": [
-                    {
-                        "title": p[0],
-                        "price": float(p[1]),
-                        "category": p[2],
-                        "image": p[3]
-                    } for p in products
-                ],
-                "success": True
-            }), 200
+#             return jsonify({
+#                 "reply": response['message']['content'],
+#                 "products": [
+#                     {
+#                         "title": p[0],
+#                         "price": float(p[1]),
+#                         "category": p[2],
+#                         "image": p[3]
+#                     } for p in products
+#                 ],
+#                 "success": True
+#             }), 200
         
-        system_prompt = """You are Emma, a helpful shopping assistant for MyStore. The customer is asking about products we might not have. Politely let them know and suggest browsing our categories or contacting support."""
+#         system_prompt = """You are Emma, a helpful shopping assistant for MyStore. The customer is asking about products we might not have. Politely let them know and suggest browsing our categories or contacting support."""
         
-        response = ollama.chat(
-            model='llama3.2:1b',  
-            messages=[
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_message}
-            ]
-        )
+#         response = ollama.chat(
+#             model='llama3.2:1b',  
+#             messages=[
+#                 {'role': 'system', 'content': system_prompt},
+#                 {'role': 'user', 'content': user_message}
+#             ]
+#         )
         
-        return jsonify({
-            "reply": response['message']['content'],
-            "products": [],
-            "success": True
-        }), 200
+#         return jsonify({
+#             "reply": response['message']['content'],
+#             "products": [],
+#             "success": True
+#         }), 200
         
-    except Exception as e:
-        print(f"❌ Product Search Error: {str(e)}")
-        return jsonify({
-            "reply": "I'm having trouble searching products right now. Please browse our categories or contact support! 🛍️",
-            "success": False
-        }), 200
+#     except Exception as e:
+#         print(f"❌ Product Search Error: {str(e)}")
+#         return jsonify({
+#             "reply": "I'm having trouble searching products right now. Please browse our categories or contact support! 🛍️",
+#             "success": False
+#         }), 200
 
 # ------------------- RUN APP -------------------
 if __name__ == "__main__":
