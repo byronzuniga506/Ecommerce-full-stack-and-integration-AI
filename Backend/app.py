@@ -162,21 +162,12 @@ def send_otp():
     otp = str(random.randint(100000, 999999))
     otp_store[email] = {"otp": otp, "expires": time.time() + 300}
 
-    try:
-        print(f"🔑 [TEST OTP] {email} -> {otp}")
-
-        with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
-            smtp.starttls()
-            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            subject = "Your OTP Code"
-            body = f"Your OTP is {otp}. Expires in 5 minutes."
-            msg = f"Subject: {subject}\n\n{body}"
-            smtp.sendmail(EMAIL_ADDRESS, email, msg)
-
-        return jsonify({"message": "OTP sent successfully!"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+    # Print OTP to console (for testing on Render)
+    print(f"🔑 [OTP for {email}] → {otp}")
+    
+    return jsonify({
+        "message": "OTP sent successfully! (Check server logs for OTP)",
+    })
 # ------------------- VERIFY OTP -------------------
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():
