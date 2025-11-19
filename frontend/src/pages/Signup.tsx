@@ -169,11 +169,16 @@ const Signup: React.FC = () => {
       localStorage.removeItem("signupForm");
       setErrors({ name: "", email: "", password: "", otp: "" });
     } catch (error: any) {
-      openPopup(error.message || "Signup failed.");
-    } finally {
-      setLoading(false);
+    // Check if the error message from backend matches "Email already registered"
+    if (error.message.includes("Email already registered")) {
+      openPopup("The email address is already registered. Please try logging in.");
+    } else {
+      openPopup(error.message || "Signup failed. Please try again.");
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="signup-container">

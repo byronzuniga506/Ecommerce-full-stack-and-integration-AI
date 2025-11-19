@@ -124,7 +124,7 @@ MyStore Team
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.json
-    print("📝 Data:", data)
+    print(" Data:", data)
     name = data.get("name", "").strip()
     email = data.get("email", "").strip()
     password = data.get("password", "").strip()
@@ -446,7 +446,7 @@ MyStore Team
         return jsonify({"message": "Seller application submitted successfully! Check your email for confirmation."}), 201
 
     except Exception as e:
-        print("❌ Error during seller signup:", str(e))
+        print(" Error during seller signup:", str(e))
         return jsonify({"error": f"Failed to submit application: {str(e)}"}), 500
     finally:
         if conn:
