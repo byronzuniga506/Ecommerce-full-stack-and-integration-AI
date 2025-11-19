@@ -162,12 +162,41 @@ def send_otp():
     otp = str(random.randint(100000, 999999))
     otp_store[email] = {"otp": otp, "expires": time.time() + 300}
 
-    # Print OTP to console (for testing on Render)
-    print(f"🔑 [OTP for {email}] → {otp}")
-    
-    return jsonify({
-        "message": "OTP sent successfully! (Check server logs for OTP)",
-    })
+    try:
+        print(f"🔑 [OTP for {email}] → {otp}")
+        
+        # Use Resend for email
+        import resend
+        
+        RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+        resend.api_key = RESEND_API_KEY
+        
+        params = {
+            "from": "MyStore <onboarding@resend.dev>",
+            "to": [email],
+            "subject": "Your OTP Code - MyStore",
+            "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #333;">Your OTP Code</h2>
+                    <p>Your OTP is:</p>
+                    <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; color: #4CAF50; letter-spacing: 5px; border-radius: 8px; margin: 20px 0;">
+                        {otp}
+                    </div>
+                    <p style="color: #666;">This code expires in 5 minutes.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="color: #999; font-size: 12px;">MyStore Team</p>
+                </div>
+            """
+        }
+        
+        email_response = resend.Emails.send(params)
+        print(f" Resend email sent! ID: {email_response['id']}")
+        
+        return jsonify({"message": "OTP sent successfully!"})
+        
+    except Exception as e:
+        print(f" Resend error: {str(e)}")
+        return jsonify({"error": f"Failed to send OTP: {str(e)}"}), 500
 # ------------------- VERIFY OTP -------------------
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():
