@@ -17,6 +17,7 @@ import ChatBot from './pages/ChatBot';
 import SellerSignup from "./pages/SellerSignup";
 import SellerDashboard from "./components/SellerDashboard";
 import EditProduct from "./components/EditProduct";
+import ForgotPassword from "./pages/ForgotPassword";
 import ContactUs from "./pages/ContactUs";
 
 function App() {
@@ -24,12 +25,12 @@ function App() {
     <Router>
       <Routes>
         {/* ================================ */}
-        {/* 🏠 DEFAULT ROUTE */}
+        {/*  DEFAULT ROUTE */}
         {/* ================================ */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* ================================ */}
-        {/* 👥 USER ROUTES (Customers) */}
+        {/*  USER ROUTES (Customers) */}
         {/* ================================ */}
         <Route path="/signup" element={<Signup />} />
         <Route path="/my-orders" element={<MyOrdersPage />} />
@@ -42,15 +43,18 @@ function App() {
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/confirmation" element={<OrderConfirmationPage />} />
         <Route path="/contactus" element={<ContactUs />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
 
         {/* ================================ */}
-        {/* 🏪 SELLER PUBLIC ROUTES (No Login Required) */}
+        {/*  SELLER PUBLIC ROUTES (No Login Required) */}
         {/* ================================ */}
         <Route path="/seller-signup" element={<SellerSignup />} />
         <Route path="/seller-login" element={<SellerLogin />} />
 
+
         {/* ================================ */}
-        {/* 🔒 SELLER PROTECTED ROUTES (Approved Sellers Only) */}
+        {/*  SELLER PROTECTED ROUTES (Approved Sellers Only) */}
         {/* ================================ */}
         <Route
           path="/seller-dashboard"
@@ -78,13 +82,13 @@ function App() {
         />
 
         {/* ================================ */}
-        {/* 📦 PRODUCT LIST (Public or Admin?) */}
+        {/*  PRODUCT LIST (Public or Admin?) */}
         {/* ================================ */}
         <Route path="/product" element={<ProductsList />} />
       </Routes>
 
       {/* ================================ */}
-      {/* 🤖 CHATBOT - AVAILABLE ON ALL PAGES */}
+      {/*  CHATBOT - AVAILABLE ON ALL PAGES */}
       {/* ================================ */}
       <ChatBot />
     </Router>

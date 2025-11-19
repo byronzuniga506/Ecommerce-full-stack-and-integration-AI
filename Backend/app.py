@@ -197,6 +197,182 @@ def send_otp():
     except Exception as e:
         print(f" Resend error: {str(e)}")
         return jsonify({"error": f"Failed to send OTP: {str(e)}"}), 500
+
+# ------------------- FORGOT PASSWORD - SEND OTP -------------------
+@app.route("/forgot-password/send-otp", methods=["POST"])
+def forgot_password_send_otp():
+    data = request.json
+    email = data.get("email", "").strip()
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        return jsonify({"error": "Invalid email format"}), 400
+
+    try:
+        # Check if user exists
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if not user:
+            return jsonify({"error": "Email not registered"}), 404
+
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+        otp_store[email] = {"otp": otp, "expires": time.time() + 300}  # 5 mins
+
+        print(f"🔑 [Password Reset OTP for {email}] → {otp}")
+
+        # Send email via Resend
+        import resend
+        
+        RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+        resend.api_key = RESEND_API_KEY
+        
+        params = {
+            "from": "MyStore <onboarding@resend.dev>",
+            "to": [email],
+            "subject": "Password Reset OTP - MyStore",
+            "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #333;">Password Reset Request</h2>
+                    <p>You requested to reset your password. Your OTP is:</p>
+                    <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; color: #FF5722; letter-spacing: 5px; border-radius: 8px; margin: 20px 0;">
+                        {otp}
+                    </div>
+                    <p style="color: #666;">This code expires in 5 minutes.</p>
+                    <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="color: #999; font-size: 12px;">MyStore Team</p>
+                </div>
+            """
+        }
+        
+        resend.Emails.send(params)
+        
+        return jsonify({"message": "OTP sent to your email successfully!"}), 200
+        
+    except Exception as e:
+        print(f"❌ Error sending password reset OTP: {str(e)}")
+        return jsonify({"error": f"Failed to send OTP: {str(e)}"}), 500
+
+
+# ------------------- FORGOT PASSWORD - VERIFY OTP -------------------
+@app.route("/forgot-password/verify-otp", methods=["POST"])
+def forgot_password_verify_otp():
+    data = request.json
+    email = data.get("email", "").strip()
+    otp = data.get("otp", "").strip()
+
+    if not email or not otp:
+        return jsonify({"error": "Email and OTP required"}), 400
+
+    record = otp_store.get(email)
+    if not record:
+        return jsonify({"error": "OTP not found or expired"}), 400
+    
+    if time.time() > record["expires"]:
+        del otp_store[email]
+        return jsonify({"error": "OTP expired. Please request a new one."}), 400
+
+    if otp == record["otp"]:
+        # Don't delete yet - we need it for password reset
+        return jsonify({"message": "OTP verified successfully!"}), 200
+    else:
+        return jsonify({"error": "Invalid OTP"}), 400
+
+
+# ------------------- FORGOT PASSWORD - RESET PASSWORD -------------------
+@app.route("/forgot-password/reset", methods=["POST"])
+def forgot_password_reset():
+    data = request.json
+    email = data.get("email", "").strip()
+    otp = data.get("otp", "").strip()
+    new_password = data.get("newPassword", "").strip()
+
+    if not email or not otp or not new_password:
+        return jsonify({"error": "Email, OTP, and new password required"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    # Verify OTP one more time
+    record = otp_store.get(email)
+    if not record or record["otp"] != otp:
+        return jsonify({"error": "Invalid or expired OTP"}), 400
+
+    if time.time() > record["expires"]:
+        del otp_store[email]
+        return jsonify({"error": "OTP expired"}), 400
+
+    try:
+        # Update password in database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if user exists
+        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Hash new password
+        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Update password
+        cursor.execute(
+            "UPDATE Users SET password = %s WHERE email = %s",
+            (hashed_password, email)
+        )
+        conn.commit()
+        conn.close()
+
+        # Delete OTP from store
+        del otp_store[email]
+
+        print(f" Password reset successful for {email}")
+
+        # Send confirmation email
+        import resend
+        RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+        resend.api_key = RESEND_API_KEY
+        
+        params = {
+            "from": "MyStore <onboarding@resend.dev>",
+            "to": [email],
+            "subject": "Password Changed Successfully - MyStore",
+            "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #4CAF50;"> Password Changed Successfully</h2>
+                    <p>Your password has been reset successfully.</p>
+                    <p>You can now login with your new password.</p>
+                    <p style="margin-top: 30px;">
+                        <a href="https://ecommerce-fullstack-murex.vercel.app/login" 
+                           style="background: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Login Now
+                        </a>
+                    </p>
+                    <p style="color: #999; font-size: 12px; margin-top: 30px;">
+                        If you didn't make this change, please contact support immediately.
+                    </p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="color: #999; font-size: 12px;">MyStore Team</p>
+                </div>
+            """
+        }
+        
+        resend.Emails.send(params)
+
+        return jsonify({"message": "Password reset successful! Redirecting to login..."}), 200
+
+    except Exception as e:
+        print(f" Error resetting password: {str(e)}")
+        return jsonify({"error": f"Failed to reset password: {str(e)}"}), 500
+
 # ------------------- VERIFY OTP -------------------
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():
