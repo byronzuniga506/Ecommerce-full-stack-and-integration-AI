@@ -222,7 +222,25 @@ MyStore Team
     except Exception as e:
         print(f" Error sending email: {str(e)}")
 
+# ------------------- HOME / HEALTH CHECK -------------------
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "message": "🎉 MyStore Backend API is Running!",
+        "status": "active",
+        "version": "1.0.0",
+        "endpoints": {
+            "auth": ["/signup", "/login", "/seller-login"],
+            "products": ["/products", "/add-product"],
+            "chat": ["/chat", "/chat-product-search"],
+            "forgot_password": ["/forgot-password/send-otp"]
+        }
+    }), 200
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "healthy", "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')}), 200
+    
 # ------------------- SIGNUP -------------------
 @app.route("/signup", methods=["POST"])
 def signup():
