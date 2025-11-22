@@ -16,33 +16,47 @@ export interface Product {
 
 export const fetchProducts = async (): Promise<Product[]> => {
   try {
-    //  Fetch from Fake Store API
-    const fakeStoreResponse = await axios.get<Product[]>(
-      "https://fakestoreapi.com/products?limit=100"
-    );
-    const fakeStoreProducts = fakeStoreResponse.data;
+    console.log(`🔄 Fetching products from: ${API_URL}/products`);
+    
+    // ✅ ONLY fetch from YOUR backend (which has 30 demo products + seller products)
+    const response = await axios.get<Product[]>(`${API_URL}/products`);
+    const products = response.data;
 
-    //  Fetch from your backend (seller products)
-    let sellerProducts: Product[] = [];
-    try {
-      const sellerResponse = await axios.get<Product[]>(
-    `${API_URL}/products`
-      );
-      sellerProducts = sellerResponse.data;
-    } catch (error) {
-      console.log("Seller backend not available, showing Fake Store products only");
-    }
+    console.log(`✅ Total products loaded: ${products.length}`);
+    console.log(`   Source: Your Backend (Demo + Seller products)`);
 
-    //  Combine both arrays
-    const allProducts = [...fakeStoreProducts, ...sellerProducts];
-
-    console.log(`✅ Total products loaded: ${allProducts.length}`);
-    console.log(`   - Fake Store: ${fakeStoreProducts.length}`);
-    console.log(`   - Seller: ${sellerProducts.length}`);
-
-    return allProducts;
+    return products;
   } catch (error) {
-    console.error("Error fetching products:", error);
-    return []; // Return empty array if API fails
+    console.error("❌ Error fetching products from backend:", error);
+    
+    // Optional: Return empty array or show error message
+    return [];
+  }
+};
+
+export const fetchProductById = async (id: number): Promise<Product | null> => {
+  try {
+    const response = await axios.get<Product>(`${API_URL}/products/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching product ${id}:`, error);
+    return null;
+  }
+};
+
+// Search products
+export const searchProducts = async (query: string): Promise<Product[]> => {
+  try {
+    const allProducts = await fetchProducts();
+    const lowerQuery = query.toLowerCase();
+    
+    return allProducts.filter(product => 
+      product.title.toLowerCase().includes(lowerQuery) ||
+      product.description.toLowerCase().includes(lowerQuery) ||
+      product.category.toLowerCase().includes(lowerQuery)
+    );
+  } catch (error) {
+    console.error("Error searching products:", error);
+    return [];
   }
 };
