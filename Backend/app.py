@@ -2328,7 +2328,8 @@ def chat_with_history():
             "fallback": True
         }), 200
 
-# ------------------- SMART PRODUCT SEARCH CHATBOT (FakeStore API) -------------------
+
+# ------------------- SMART PRODUCT SEARCH CHATBOT (DATABASE ONLY) -------------------
 @app.route("/chat-product-search", methods=["POST"])
 def chat_product_search():
     data = request.json
@@ -2338,47 +2339,39 @@ def chat_product_search():
         return jsonify({"error": "Message is required"}), 400
     
     try:
-        print(f" Searching FakeStore API for: {user_message}")
+        print(f"🔍 Searching database for: {user_message}")
         
-        # Search FakeStore API
-        fakestore_products = search_fakestore_products(user_message)
-        
-        # Also search your database
+        # ONLY search your database (no more FakeStore API)
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT title, price, category, image 
+            SELECT title, price, category, image, id
             FROM Products 
             WHERE status = 'published' 
             AND (title ILIKE %s OR category ILIKE %s OR description ILIKE %s)
-            LIMIT 3
+            LIMIT 5
         """, (f'%{user_message}%', f'%{user_message}%', f'%{user_message}%'))
         
         db_products = cursor.fetchall()
         conn.close()
         
+        print(f"   💾 Database found: {len(db_products)} products")
+        
         all_products = []
         
-        # Add FakeStore products
-        for p in fakestore_products[:2]:
+        # Add database products (no duplicates!)
+        for p in db_products:
             all_products.append({
-                "title": p.get('title', 'Unknown'),
-                "price": float(p.get('price', 0)),
-                "category": p.get('category', 'General'),
-                "image": p.get('image', ''),
-                "source": "fakestore"
-            })
-        
-        # Add database products
-        for p in db_products[:2]:
-            all_products.append({
+                "id": p[4],
                 "title": p[0],
                 "price": float(p[1]),
                 "category": p[2],
                 "image": p[3],
                 "source": "mystore"
             })
+        
+        print(f"   ✅ Total products to return: {len(all_products)}")
         
         if all_products:
             product_info = "\n".join([
@@ -2390,7 +2383,7 @@ def chat_product_search():
 
 The customer asked: "{user_message}"
 
-We found these relevant products:
+We found these products in our store:
 {product_info}
 
 Recommend these products naturally, mention their prices, and be enthusiastic but not pushy! Keep it under 100 words."""
@@ -2408,10 +2401,16 @@ Recommend these products naturally, mention their prices, and be enthusiastic bu
             return jsonify({
                 "reply": bot_reply,
                 "products": all_products,
-                "success": True
+                "success": True,
+                "debug": {
+                    "database_count": len(db_products),
+                    "total_returned": len(all_products)
+                }
             }), 200
         
         # No products found
+        print(f"    No products found for: {user_message}")
+        
         system_prompt = """You are Emma, a helpful shopping assistant for MyStore. The customer is asking about products we don't have. Politely let them know and suggest browsing our categories or contacting support. Keep it friendly and under 50 words."""
         
         messages = [
@@ -2427,14 +2426,24 @@ Recommend these products naturally, mention their prices, and be enthusiastic bu
         return jsonify({
             "reply": bot_reply,
             "products": [],
-            "success": True
+            "success": True,
+            "debug": {
+                "database_count": 0,
+                "message": "No products found"
+            }
         }), 200
         
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         print(f" Product Search Error: {str(e)}")
+        print(error_trace)
+        
         return jsonify({
             "reply": "I'm having trouble searching products right now. Please browse our categories or contact support! 🛍️",
-            "success": False
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
         }), 200
 
 # ------------------- RUN APP -------------------
