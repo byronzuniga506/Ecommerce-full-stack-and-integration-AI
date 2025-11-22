@@ -1,11 +1,20 @@
 import React, { useState } from "react";
 import "../index.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import API_URL from "../config";
 
 const ForgotPassword: React.FC = () => {
-  const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // ✅ Auto-detect if seller or customer based on URL
+  const isSeller = location.pathname.includes("seller");
+  const userType = isSeller ? "seller" : "customer";
+  const loginRoute = isSeller ? "/seller-login" : "/login";
+  const pageTitle = isSeller ? "🔐 Seller - Reset Password" : "🔐 Reset Password";
+
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -13,8 +22,6 @@ const ForgotPassword: React.FC = () => {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const navigate = useNavigate();
 
   // Step 1: Send OTP
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -24,9 +31,12 @@ const ForgotPassword: React.FC = () => {
     setMessage("");
 
     try {
-      const res = await axios.post(`${API_URL}/forgot-password/send-otp`, { email });
+      const res = await axios.post(`${API_URL}/forgot-password/send-otp`, { 
+        email, 
+        userType // ✅ Pass userType to backend
+      });
       setMessage(res.data.message);
-      setStep(2); // Move to OTP verification
+      setStep(2);
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to send OTP");
     } finally {
@@ -42,9 +52,13 @@ const ForgotPassword: React.FC = () => {
     setMessage("");
 
     try {
-      const res = await axios.post(`${API_URL}/forgot-password/verify-otp`, { email, otp });
+      const res = await axios.post(`${API_URL}/forgot-password/verify-otp`, { 
+        email, 
+        otp,
+        userType // ✅ Pass userType
+      });
       setMessage(res.data.message);
-      setStep(3); // Move to password reset
+      setStep(3);
     } catch (err: any) {
       setError(err.response?.data?.error || "Invalid OTP");
     } finally {
@@ -58,7 +72,6 @@ const ForgotPassword: React.FC = () => {
     setError("");
     setMessage("");
 
-    // Validation
     if (newPassword.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -76,12 +89,12 @@ const ForgotPassword: React.FC = () => {
         email,
         otp,
         newPassword,
+        userType // ✅ Pass userType
       });
       setMessage(res.data.message);
       
-      // Redirect to login after 2 seconds
       setTimeout(() => {
-        navigate("/login");
+        navigate(loginRoute); // ✅ Go to correct login page
       }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to reset password");
@@ -93,7 +106,7 @@ const ForgotPassword: React.FC = () => {
   return (
     <div className="signup-container">
       <div className="signup-box">
-        <h2>Forgot Password</h2>
+        <h2>{pageTitle}</h2>
 
         {/* Step 1: Enter Email */}
         {step === 1 && (
@@ -104,20 +117,20 @@ const ForgotPassword: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your registered email"
+                placeholder={`Enter your registered ${userType} email`}
                 required
               />
             </div>
 
-            {message && <p style={{ color: "green" }}>{message}</p>}
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            {message && <p style={{ color: "green", fontSize: "14px" }}>✅ {message}</p>}
+            {error && <p style={{ color: "red", fontSize: "14px" }}>❌ {error}</p>}
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? "Sending..." : "Send OTP"}
             </button>
 
             <p className="login-link">
-              Remember your password? <a href="/login">Login</a>
+              Remember your password? <a href={loginRoute}>Login</a>
             </p>
           </form>
         )}
@@ -125,8 +138,8 @@ const ForgotPassword: React.FC = () => {
         {/* Step 2: Enter OTP */}
         {step === 2 && (
           <form onSubmit={handleVerifyOTP}>
-            <p style={{ marginBottom: "20px", color: "#666" }}>
-              OTP sent to <strong>{email}</strong>
+            <p style={{ marginBottom: "20px", color: "#666", fontSize: "14px" }}>
+              📧 OTP sent to <strong>{email}</strong>
             </p>
 
             <div className="form-group">
@@ -141,8 +154,8 @@ const ForgotPassword: React.FC = () => {
               />
             </div>
 
-            {message && <p style={{ color: "green" }}>{message}</p>}
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            {message && <p style={{ color: "green", fontSize: "14px" }}>✅ {message}</p>}
+            {error && <p style={{ color: "red", fontSize: "14px" }}>❌ {error}</p>}
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? "Verifying..." : "Verify OTP"}
@@ -157,7 +170,7 @@ const ForgotPassword: React.FC = () => {
         {/* Step 3: Reset Password */}
         {step === 3 && (
           <form onSubmit={handleResetPassword}>
-            <p style={{ marginBottom: "20px", color: "green" }}>
+            <p style={{ marginBottom: "20px", color: "green", fontSize: "14px" }}>
               ✅ OTP Verified! Enter your new password
             </p>
 
@@ -167,7 +180,7 @@ const ForgotPassword: React.FC = () => {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
+                placeholder="Enter new password (min 6 characters)"
                 required
               />
             </div>
@@ -183,8 +196,8 @@ const ForgotPassword: React.FC = () => {
               />
             </div>
 
-            {message && <p style={{ color: "green" }}>{message}</p>}
-            {error && <p style={{ color: "red" }}>{error}</p>}
+            {message && <p style={{ color: "green", fontSize: "14px" }}>✅ {message}</p>}
+            {error && <p style={{ color: "red", fontSize: "14px" }}>❌ {error}</p>}
 
             <button type="submit" className="login-btn" disabled={loading}>
               {loading ? "Resetting..." : "Reset Password"}

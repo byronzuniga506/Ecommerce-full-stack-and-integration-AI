@@ -11,7 +11,7 @@ import bcrypt
 import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-# import ollama
+import requests
 import os
 
 load_dotenv()
@@ -26,13 +26,116 @@ CORS(app)
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD") 
 
+# ------------------- HUGGING FACE CONFIG -------------------
+HF_API_KEY = os.getenv("HF_API_KEY",)
+HF_API_URL = os.getenv("HF_API_URL")
+FAKESTORE_API = os.getenv("FAKESTORE_API_URL",)
+
 # In-memory OTP store
 otp_store = {}
+
+# Cache for FakeStore products
+fakestore_cache = {"products": None, "last_fetched": 0}
 
 # ------------------- DATABASE HELPER -------------------
 def get_db_connection():
     """Get PostgreSQL database connection"""
     return psycopg2.connect(DATABASE_URL, sslmode='require')
+
+# ------------------- HUGGING FACE HELPERS -------------------
+def get_fakestore_products():
+    """Fetch and cache products from FakeStore API"""
+    current_time = time.time()
+    
+    # Cache for 5 minutes
+    if fakestore_cache["products"] and (current_time - fakestore_cache["last_fetched"]) < 300:
+        return fakestore_cache["products"]
+    
+    try:
+        response = requests.get(FAKESTORE_API, timeout=5)
+        if response.status_code == 200:
+            products = response.json()
+            fakestore_cache["products"] = products
+            fakestore_cache["last_fetched"] = current_time
+            print(f"✅ Fetched {len(products)} products from FakeStore API")
+            return products
+    except Exception as e:
+        print(f" Error fetching FakeStore products: {str(e)}")
+    
+    return fakestore_cache.get("products", [])
+
+def search_fakestore_products(query):
+    """Search FakeStore products by query"""
+    products = get_fakestore_products()
+    if not products:
+        return []
+    
+    query_lower = query.lower()
+    matches = []
+    
+    for product in products:
+        title = product.get('title', '').lower()
+        category = product.get('category', '').lower()
+        description = product.get('description', '').lower()
+        
+        if query_lower in title or query_lower in category or query_lower in description:
+            matches.append(product)
+        
+        if len(matches) >= 3:
+            break
+    
+    return matches
+
+def call_huggingface_api(messages, max_tokens=150, temperature=0.7):
+    """Call Hugging Face Inference API"""
+    try:
+        # Build prompt from messages
+        prompt = ""
+        for msg in messages:
+            role = msg.get('role', 'user')
+            content = msg.get('content', '')
+            
+            if role == 'system':
+                prompt += f"System: {content}\n\n"
+            elif role == 'user':
+                prompt += f"User: {content}\n"
+            elif role == 'assistant':
+                prompt += f"Assistant: {content}\n"
+        
+        prompt += "Assistant:"
+        
+        headers = {
+            "Authorization": f"Bearer {HF_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "inputs": prompt,
+            "parameters": {
+                "max_new_tokens": max_tokens,
+                "temperature": temperature,
+                "top_p": 0.9,
+                "do_sample": True,
+                "return_full_text": False
+            }
+        }
+        
+        response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                return result[0].get('generated_text', '').strip()
+            return str(result)
+        elif response.status_code == 503:
+            return "MODEL_LOADING"
+        else:
+            print(f" HF API Error: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        print(f" HF API Exception: {str(e)}")
+        return None
 
 # ------------------- HELPER FUNCTIONS -------------------
 
@@ -59,7 +162,7 @@ def log_product_activity(product_id, seller_email, seller_name, action, product_
         print(f"✅ Logged activity: {action} - {product_title}")
         
     except Exception as e:
-        print(f"❌ Error logging activity: {str(e)}")
+        print(f" Error logging activity: {str(e)}")
     finally:
         if conn:
             conn.close()
@@ -85,9 +188,9 @@ Hello {seller_name},
 
 Your product action was successful!
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+===========================
 {emoji} ACTION: {action.upper()}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+============================
 
 Product: {product_title}
 Action: {action.capitalize()}
@@ -95,7 +198,7 @@ Time: {time.strftime('%B %d, %Y at %I:%M %p')}
 
 {details}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+===============================
 
 View your dashboard: http://localhost:5173/seller-dashboard
 
@@ -114,17 +217,17 @@ MyStore Team
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
         
-        print(f"✅ Email sent to {seller_email} for {action}")
+        print(f" Email sent to {seller_email} for {action}")
         
     except Exception as e:
-        print(f"❌ Error sending email: {str(e)}")
+        print(f" Error sending email: {str(e)}")
 
 
 # ------------------- SIGNUP -------------------
 @app.route("/signup", methods=["POST"])
 def signup():
     data = request.json
-    print(" Data:", data)
+    print("📝 Data:", data)
     name = data.get("name", "").strip()
     email = data.get("email", "").strip()
     password = data.get("password", "").strip()
@@ -198,180 +301,7 @@ def send_otp():
         print(f" Resend error: {str(e)}")
         return jsonify({"error": f"Failed to send OTP: {str(e)}"}), 500
 
-# ------------------- FORGOT PASSWORD - SEND OTP -------------------
-@app.route("/forgot-password/send-otp", methods=["POST"])
-def forgot_password_send_otp():
-    data = request.json
-    email = data.get("email", "").strip()
 
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
-    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        return jsonify({"error": "Invalid email format"}), 400
-
-    try:
-        # Check if user exists
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
-        user = cursor.fetchone()
-        conn.close()
-
-        if not user:
-            return jsonify({"error": "Email not registered"}), 404
-
-        # Generate OTP
-        otp = str(random.randint(100000, 999999))
-        otp_store[email] = {"otp": otp, "expires": time.time() + 300}  # 5 mins
-
-        print(f"🔑 [Password Reset OTP for {email}] → {otp}")
-
-        # Send email via Resend
-        import resend
-        
-        RESEND_API_KEY = os.getenv("RESEND_API_KEY")
-        resend.api_key = RESEND_API_KEY
-        
-        params = {
-            "from": "MyStore <onboarding@resend.dev>",
-            "to": [email],
-            "subject": "Password Reset OTP - MyStore",
-            "html": f"""
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #333;">Password Reset Request</h2>
-                    <p>You requested to reset your password. Your OTP is:</p>
-                    <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; color: #FF5722; letter-spacing: 5px; border-radius: 8px; margin: 20px 0;">
-                        {otp}
-                    </div>
-                    <p style="color: #666;">This code expires in 5 minutes.</p>
-                    <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                    <p style="color: #999; font-size: 12px;">MyStore Team</p>
-                </div>
-            """
-        }
-        
-        resend.Emails.send(params)
-        
-        return jsonify({"message": "OTP sent to your email successfully!"}), 200
-        
-    except Exception as e:
-        print(f"❌ Error sending password reset OTP: {str(e)}")
-        return jsonify({"error": f"Failed to send OTP: {str(e)}"}), 500
-
-
-# ------------------- FORGOT PASSWORD - VERIFY OTP -------------------
-@app.route("/forgot-password/verify-otp", methods=["POST"])
-def forgot_password_verify_otp():
-    data = request.json
-    email = data.get("email", "").strip()
-    otp = data.get("otp", "").strip()
-
-    if not email or not otp:
-        return jsonify({"error": "Email and OTP required"}), 400
-
-    record = otp_store.get(email)
-    if not record:
-        return jsonify({"error": "OTP not found or expired"}), 400
-    
-    if time.time() > record["expires"]:
-        del otp_store[email]
-        return jsonify({"error": "OTP expired. Please request a new one."}), 400
-
-    if otp == record["otp"]:
-        # Don't delete yet - we need it for password reset
-        return jsonify({"message": "OTP verified successfully!"}), 200
-    else:
-        return jsonify({"error": "Invalid OTP"}), 400
-
-
-# ------------------- FORGOT PASSWORD - RESET PASSWORD -------------------
-@app.route("/forgot-password/reset", methods=["POST"])
-def forgot_password_reset():
-    data = request.json
-    email = data.get("email", "").strip()
-    otp = data.get("otp", "").strip()
-    new_password = data.get("newPassword", "").strip()
-
-    if not email or not otp or not new_password:
-        return jsonify({"error": "Email, OTP, and new password required"}), 400
-
-    if len(new_password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters"}), 400
-
-    # Verify OTP one more time
-    record = otp_store.get(email)
-    if not record or record["otp"] != otp:
-        return jsonify({"error": "Invalid or expired OTP"}), 400
-
-    if time.time() > record["expires"]:
-        del otp_store[email]
-        return jsonify({"error": "OTP expired"}), 400
-
-    try:
-        # Update password in database
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Check if user exists
-        cursor.execute("SELECT * FROM Users WHERE email = %s", (email,))
-        user = cursor.fetchone()
-        
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-
-        # Hash new password
-        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-        # Update password
-        cursor.execute(
-            "UPDATE Users SET password = %s WHERE email = %s",
-            (hashed_password, email)
-        )
-        conn.commit()
-        conn.close()
-
-        # Delete OTP from store
-        del otp_store[email]
-
-        print(f" Password reset successful for {email}")
-
-        # Send confirmation email
-        import resend
-        RESEND_API_KEY = os.getenv("RESEND_API_KEY")
-        resend.api_key = RESEND_API_KEY
-        
-        params = {
-            "from": "MyStore <onboarding@resend.dev>",
-            "to": [email],
-            "subject": "Password Changed Successfully - MyStore",
-            "html": f"""
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2 style="color: #4CAF50;"> Password Changed Successfully</h2>
-                    <p>Your password has been reset successfully.</p>
-                    <p>You can now login with your new password.</p>
-                    <p style="margin-top: 30px;">
-                        <a href="https://ecommerce-fullstack-murex.vercel.app/login" 
-                           style="background: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                            Login Now
-                        </a>
-                    </p>
-                    <p style="color: #999; font-size: 12px; margin-top: 30px;">
-                        If you didn't make this change, please contact support immediately.
-                    </p>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                    <p style="color: #999; font-size: 12px;">MyStore Team</p>
-                </div>
-            """
-        }
-        
-        resend.Emails.send(params)
-
-        return jsonify({"message": "Password reset successful! Redirecting to login..."}), 200
-
-    except Exception as e:
-        print(f" Error resetting password: {str(e)}")
-        return jsonify({"error": f"Failed to reset password: {str(e)}"}), 500
 
 # ------------------- VERIFY OTP -------------------
 @app.route("/verify-otp", methods=["POST"])
@@ -466,6 +396,193 @@ Phone: {addressInfo.get('phone')}
         return jsonify({"message": "Order confirmation email sent successfully!"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+# ------------------- FORGOT PASSWORD: SEND OTP -------------------
+@app.route("/forgot-password/send-otp", methods=["POST"])
+def forgot_password_send_otp():
+    data = request.json
+    email = data.get("email", "").strip()
+    user_type = data.get("userType", "customer").strip()  # "customer" or "seller"
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check the right table
+        if user_type == "seller":
+            cursor.execute("SELECT fullname FROM Sellers WHERE email = %s", (email,))
+        else:
+            cursor.execute("SELECT name FROM Users WHERE email = %s", (email,))
+        
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({"error": f"No {user_type} account found with this email"}), 404
+
+        user_name = user[0]
+        
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+        otp_store[email] = {
+            "otp": otp, 
+            "expires": time.time() + 300,
+            "user_type": user_type
+        }
+
+        print(f"🔑 [Password Reset OTP for {user_type}: {email}] → {otp}")
+
+        # Send email
+        subject = "🔐 Password Reset OTP - MyStore"
+        body = f"""
+Hello {user_name},
+
+You requested to reset your password.
+
+Your OTP is: {otp}
+
+This code expires in 5 minutes.
+
+If you didn't request this, please ignore this email.
+
+Best regards,
+MyStore Team
+"""
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_ADDRESS
+        msg["To"] = email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+            smtp.starttls()
+            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            smtp.send_message(msg)
+
+        return jsonify({"message": "OTP sent to your email!"}), 200
+
+    except Exception as e:
+        print(f" Error sending OTP: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+# ------------------- FORGOT PASSWORD: VERIFY OTP -------------------
+@app.route("/forgot-password/verify-otp", methods=["POST"])
+def forgot_password_verify_otp():
+    data = request.json
+    email = data.get("email", "").strip()
+    otp = data.get("otp", "").strip()
+    user_type = data.get("userType", "customer").strip()
+
+    if not email or not otp:
+        return jsonify({"error": "Email and OTP are required"}), 400
+
+    record = otp_store.get(email)
+    
+    if not record:
+        return jsonify({"error": "OTP not found. Please request a new one."}), 400
+    
+    if record.get("user_type") != user_type:
+        return jsonify({"error": "Invalid request"}), 400
+    
+    if time.time() > record["expires"]:
+        del otp_store[email]
+        return jsonify({"error": "OTP expired. Please request a new one."}), 400
+
+    if otp == record["otp"]:
+        return jsonify({"message": "OTP verified successfully!"}), 200
+    else:
+        return jsonify({"error": "Invalid OTP"}), 400
+
+# ------------------- FORGOT PASSWORD: RESET PASSWORD -------------------
+@app.route("/forgot-password/reset", methods=["POST"])
+def forgot_password_reset():
+    data = request.json
+    email = data.get("email", "").strip()
+    otp = data.get("otp", "").strip()
+    new_password = data.get("newPassword", "").strip()
+    user_type = data.get("userType", "customer").strip()
+
+    if not email or not otp or not new_password:
+        return jsonify({"error": "All fields are required"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    # Verify OTP again
+    record = otp_store.get(email)
+    if not record or record["otp"] != otp or record.get("user_type") != user_type:
+        return jsonify({"error": "Invalid or expired OTP"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Hash new password
+        hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        # Update the right table
+        if user_type == "seller":
+            cursor.execute("SELECT fullname FROM Sellers WHERE email = %s", (email,))
+            user = cursor.fetchone()
+            
+            if not user:
+                return jsonify({"error": "Seller not found"}), 404
+            
+            user_name = user[0]
+            cursor.execute("UPDATE Sellers SET password = %s WHERE email = %s", (hashed_password, email))
+            
+        else:  # customer
+            cursor.execute("SELECT name FROM Users WHERE email = %s", (email,))
+            user = cursor.fetchone()
+            
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+            
+            user_name = user[0]
+            cursor.execute("UPDATE Users SET password = %s WHERE email = %s", (hashed_password, email))
+
+        conn.commit()
+
+        # Remove OTP from store
+        del otp_store[email]
+
+        print(f"✅ Password reset successful for {user_type}: {email}")
+
+        # Send confirmation email
+        subject = "✅ Password Reset Successful - MyStore"
+        body = f"""
+Hello {user_name},
+
+Your password has been successfully reset.
+
+You can now login with your new password.
+
+If you didn't make this change, please contact support immediately.
+
+Best regards,
+MyStore Team
+"""
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_ADDRESS
+        msg["To"] = email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+            smtp.starttls()
+            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            smtp.send_message(msg)
+
+        return jsonify({"message": "Password reset successful! Redirecting to login..."}), 200
+
+    except Exception as e:
+        print(f" Error resetting password: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
 
 # ------------------- SAVE ORDER TO DATABASE -------------------
 @app.route("/save-order", methods=["POST"])
@@ -553,7 +670,7 @@ def get_orders(email):
 
         return jsonify(orders_list)
     except Exception as e:
-        print("❌ Error fetching orders:", str(e))
+        print(" Error fetching orders:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -676,7 +793,7 @@ def seller_login():
             return jsonify({"error": "Invalid account status"}), 403
 
     except Exception as e:
-        print("❌ Error during seller login:", str(e))
+        print(" Error during seller login:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -728,7 +845,7 @@ def add_product():
         
         product_id = cursor.fetchone()[0]
         conn.commit()
-        print(f"✅ Product saved with ID: {product_id} (Status: draft)")
+        print(f" Product saved with ID: {product_id} (Status: draft)")
 
         # LOG ACTIVITY
         log_product_activity(product_id, seller_email, seller_name, "created", title)
@@ -775,7 +892,7 @@ MyStore Team
         }), 201
 
     except Exception as e:
-        print("❌ Error adding product:", str(e))
+        print(" Error adding product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         if conn:
@@ -828,11 +945,11 @@ def get_seller_products():
             for row in rows
         ]
         
-        print(f"✅ Found {len(products)} products for seller: {seller_email}")
+        print(f" Found {len(products)} products for seller: {seller_email}")
         return jsonify(products), 200
         
     except Exception as e:
-        print("❌ Error fetching seller products:", str(e))
+        print(" Error fetching seller products:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -855,7 +972,7 @@ def delete_product(product_id):
         cursor.execute("DELETE FROM Products WHERE id = %s", (product_id,))
         conn.commit()
         
-        print(f"🗑️ Product deleted: {title} (ID: {product_id})")
+        print(f" Product deleted: {title} (ID: {product_id})")
         
         # LOG ACTIVITY
         log_product_activity(product_id, seller_email, seller_name, "deleted", title)
@@ -872,7 +989,7 @@ def delete_product(product_id):
         return jsonify({"message": "Product deleted successfully!"}), 200
         
     except Exception as e:
-        print("❌ Error deleting product:", str(e))
+        print(" Error deleting product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -895,7 +1012,7 @@ def publish_product(product_id):
         cursor.execute("UPDATE Products SET status = %s WHERE id = %s", ('published', product_id))
         conn.commit()
         
-        print(f"✅ Product published: {title} (ID: {product_id})")
+        print(f" Product published: {title} (ID: {product_id})")
         
         # LOG ACTIVITY
         log_product_activity(
@@ -923,7 +1040,7 @@ def publish_product(product_id):
         }), 200
         
     except Exception as e:
-        print("❌ Error publishing product:", str(e))
+        print(" Error publishing product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -974,7 +1091,7 @@ def unpublish_product(product_id):
         }), 200
         
     except Exception as e:
-        print("❌ Error unpublishing product:", str(e))
+        print(" Error unpublishing product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -1008,7 +1125,7 @@ def check_seller_status():
         }), 200
 
     except Exception as e:
-        print("❌ Error checking seller status:", str(e))
+        print(" Error checking seller status:", str(e))
         return jsonify({"error": str(e), "isApproved": False}), 500
     finally:
         conn.close()
@@ -1046,7 +1163,7 @@ def get_single_product(product_id):
         return jsonify(product), 200
         
     except Exception as e:
-        print("❌ Error fetching product:", str(e))
+        print(" Error fetching product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -1105,7 +1222,7 @@ def update_product(product_id):
         
         conn.commit()
         
-        print(f"✏️ Product updated: {title} (ID: {product_id})")
+        print(f" Product updated: {title} (ID: {product_id})")
         
         # LOG ACTIVITY
         log_product_activity(
@@ -1145,7 +1262,7 @@ def update_product(product_id):
         return jsonify({"message": "Product updated successfully!"}), 200
         
     except Exception as e:
-        print("❌ Error updating product:", str(e))
+        print(" Error updating product:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -1186,7 +1303,7 @@ def get_seller_activity():
         return jsonify(activities), 200
         
     except Exception as e:
-        print("❌ Error fetching seller activity:", str(e))
+        print(" Error fetching seller activity:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -1284,7 +1401,7 @@ MyStore Team
         return jsonify({"message": f"Seller status updated to {new_status} and email sent."})
 
     except Exception as e:
-        print("❌ Error updating seller status:", e)
+        print(" Error updating seller status:", e)
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
@@ -1325,11 +1442,11 @@ Thank you for contacting MyStore!
 We have received your message and will get back to you within 24-48 hours.
 
 Your Message:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+================================
 Subject: {subject or 'General Inquiry'}
 
 {message}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+=================================
 
 Best regards,
 MyStore Support Team
@@ -1349,7 +1466,7 @@ This is an automated confirmation email.
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(msg)
 
-        print(f"📧 Confirmation email sent to {email}")
+        print(f" Confirmation email sent to {email}")
 
         admin_subject = f"🔔 New Contact Message from {name}"
         admin_body = f"""
@@ -1362,7 +1479,7 @@ Subject: {subject or 'General Inquiry'}
 Message:
 {message}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+================================
 Received at: {time.strftime('%B %d, %Y at %I:%M %p')}
 """
 
@@ -1377,7 +1494,7 @@ Received at: {time.strftime('%B %d, %Y at %I:%M %p')}
             smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp.send_message(admin_msg)
 
-        print(f"📧 Admin notification sent")
+        print(f" Admin notification sent")
 
         return jsonify({
             "message": "Thank you for contacting us! We'll get back to you soon.",
@@ -1385,7 +1502,7 @@ Received at: {time.strftime('%B %d, %Y at %I:%M %p')}
         }), 200
 
     except Exception as e:
-        print("❌ Error processing contact form:", str(e))
+        print(" Error processing contact form:", str(e))
         return jsonify({"error": f"Failed to send message: {str(e)}"}), 500
     finally:
         if conn:
@@ -1422,220 +1539,244 @@ def get_contact_messages():
         return jsonify(messages), 200
         
     except Exception as e:
-        print("❌ Error fetching contact messages:", str(e))
+        print(" Error fetching contact messages:", str(e))
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-# # ------------------- CHATBOT WITH OLLAMA -------------------
-# @app.route("/chat", methods=["POST"])
-# def chat():
-#     data = request.json
-#     user_message = data.get("message", "").strip()
+# ------------------- CHATBOT WITH HUGGING FACE -------------------
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.json
+    user_message = data.get("message", "").strip()
     
-#     if not user_message:
-#         return jsonify({"error": "Message is required"}), 400
+    if not user_message:
+        return jsonify({"error": "Message is required"}), 400
     
-#     print(f"\n{'='*60}")
-#     print(f"📨 Incoming message: {user_message}")
-#     print(f"{'='*60}")
+    print(f"\n{'='*60}")
+    print(f" Incoming message: {user_message}")
+    print(f"{'='*60}")
     
-#     try:
-#         system_prompt = """You are Emma, a friendly AI customer support assistant for MyStore, an e-commerce platform. 
-#         You help customers with:
-#         - Product inquiries
-#         - Order tracking
-#         - Return policies
-#         - Account issues
-#         - General shopping questions
+    try:
+        system_prompt = """You are Emma, a friendly AI customer support assistant for MyStore, an e-commerce platform. 
+        You help customers with:
+        - Product inquiries
+        - Order tracking
+        - Return policies
+        - Account issues
+        - General shopping questions
         
-#         Be friendly, professional, and concise. If you don't know something, admit it and suggest contacting support."""
+        Be friendly, professional, and concise. If you don't know something, admit it and suggest contacting support."""
         
-#         print("🤖 Calling Ollama with llama3.2:1b...")
+        print(" Calling Hugging Face API...")
         
-#         response = ollama.chat(
-#             model='llama3.2:1b',
-#             messages=[
-#                 {'role': 'system', 'content': system_prompt},
-#                 {'role': 'user', 'content': user_message}
-#             ],
-#             options={
-#                 'temperature': 0.7,
-#                 'num_predict': 150
-#             }
-#         )
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_message}
+        ]
         
-#         bot_reply = response['message']['content']
+        bot_reply = call_huggingface_api(messages, max_tokens=150, temperature=0.7)
         
-#         print(f"✅ Bot replied: {bot_reply[:100]}...")
-#         print(f"{'='*60}\n")
-        
-#         return jsonify({
-#             "reply": bot_reply,
-#             "success": True,
-#             "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
-#         }), 200
-        
-#     except Exception as e:
-#         import traceback
-#         error_details = traceback.format_exc()
-        
-#         print(f"❌ ERROR!")
-#         print(f"   Type: {type(e).__name__}")
-#         print(f"   Message: {str(e)}")
-#         print(error_details)
-#         print(f"{'='*60}\n")
-        
-#         fallback_responses = {
-#             "shipping": "We offer free shipping on orders over $50! Standard delivery takes 3-5 business days. 📦",
-#             "return": "We have a hassle-free 30-day return policy! Email support@mystore.com with your order number. 🔄",
-#             "payment": "We accept all major credit cards, PayPal, and debit cards. All transactions are SSL secured. 💳",
-#             "default": "I'm having trouble connecting right now. Please email us at support@mystore.com or call 1-800-MYSTORE. We're here 24/7! 😊"
-#         }
-        
-#         user_lower = user_message.lower()
-#         if any(word in user_lower for word in ['ship', 'delivery', 'track']):
-#             fallback = fallback_responses['shipping']
-#         elif any(word in user_lower for word in ['return', 'refund', 'exchange']):
-#             fallback = fallback_responses['return']
-#         elif any(word in user_lower for word in ['pay', 'payment', 'credit', 'card']):
-#             fallback = fallback_responses['payment']
-#         else:
-#             fallback = fallback_responses['default']
-        
-#         return jsonify({
-#             "reply": fallback,
-#             "success": False,
-#             "fallback": True,
-#             "error_type": type(e).__name__,
-#             "error_message": str(e)
-#         }), 200
-
-# # ------------------- CHAT WITH CONVERSATION HISTORY -------------------
-# @app.route("/chat-with-history", methods=["POST"])
-# def chat_with_history():
-#     data = request.json
-#     user_message = data.get("message", "").strip()
-#     conversation_history = data.get("history", [])
-    
-#     if not user_message:
-#         return jsonify({"error": "Message is required"}), 400
-    
-#     try:
-#         system_prompt = """You are Emma, MyStore's friendly AI assistant. You help customers with shopping, orders, returns, and general questions. Be helpful, concise, and friendly!"""
-        
-#         messages = [{'role': 'system', 'content': system_prompt}]
-#         messages.extend(conversation_history[-6:])
-#         messages.append({'role': 'user', 'content': user_message})
-    
-#         response = ollama.chat(
-#             model='llama3.2:1b',  
-#             messages=messages,
-#             options={
-#                 'temperature': 0.7,
-#                 'num_predict': 150
-#             }
-#         )
-        
-#         bot_reply = response['message']['content']
-        
-#         return jsonify({
-#             "reply": bot_reply,
-#             "success": True,
-#             "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
-#         }), 200
-        
-#     except Exception as e:
-#         print(f"❌ Chatbot Error: {str(e)}")
-#         return jsonify({
-#             "reply": "I'm experiencing technical difficulties. Please try again or contact support@mystore.com 💙",
-#             "success": False,
-#             "fallback": True
-#         }), 200
-
-# # ------------------- SMART PRODUCT SEARCH CHATBOT -------------------
-# @app.route("/chat-product-search", methods=["POST"])
-# def chat_product_search():
-#     data = request.json
-#     user_message = data.get("message", "").strip()
-    
-#     if not user_message:
-#         return jsonify({"error": "Message is required"}), 400
-    
-#     try:
-#         conn = get_db_connection()
-#         cursor = conn.cursor()
-        
-#         cursor.execute("""
-#             SELECT title, price, category, image 
-#             FROM Products 
-#             WHERE status = 'published' 
-#             AND (title ILIKE %s OR category ILIKE %s OR description ILIKE %s)
-#             LIMIT 3
-#         """, (f'%{user_message}%', f'%{user_message}%', f'%{user_message}%'))
-        
-#         products = cursor.fetchall()
-#         conn.close()
-        
-#         if products:
-#             product_info = "\n".join([
-#                 f"- {p[0]} (${p[1]}) in {p[2]} category"
-#                 for p in products
-#             ])
+        if bot_reply and bot_reply != "MODEL_LOADING":
+            print(f" Bot replied: {bot_reply[:100]}...")
+            print(f"{'='*60}\n")
             
-#             enhanced_prompt = f"""You are Emma, MyStore's AI assistant. 
-
-# The customer asked: "{user_message}"
-
-# We found these relevant products in our store:
-# {product_info}
-
-# Recommend these products naturally and mention their prices. Be enthusiastic but not pushy!"""
+            return jsonify({
+                "reply": bot_reply,
+                "success": True,
+                "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
+            }), 200
         
-#             response = ollama.chat(
-#                 model='llama3.2:1b',
-#                 messages=[
-#                     {'role': 'system', 'content': enhanced_prompt},
-#                     {'role': 'user', 'content': user_message}
-#                 ],
-#                 options={'temperature': 0.8, 'num_predict': 200}
-#             )
+        elif bot_reply == "MODEL_LOADING":
+            return jsonify({
+                "reply": "I'm waking up! This might take 20-30 seconds. Please ask again in a moment. 😊",
+                "success": False,
+                "fallback": True,
+                "model_loading": True
+            }), 200
+        
+        else:
+            raise Exception("No response from AI")
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        
+        print(f" ERROR!")
+        print(f"   Type: {type(e).__name__}")
+        print(f"   Message: {str(e)}")
+        print(error_details)
+        print(f"{'='*60}\n")
+        
+        fallback_responses = {
+            "shipping": "We offer free shipping on orders over $50! Standard delivery takes 3-5 business days. 📦",
+            "return": "We have a hassle-free 30-day return policy! Email support@mystore.com with your order number. 🔄",
+            "payment": "We accept all major credit cards, PayPal, and debit cards. All transactions are SSL secured. 💳",
+            "default": "I'm having trouble connecting right now. Please email us at support@mystore.com or call 1-800-MYSTORE. We're here 24/7! 😊"
+        }
+        
+        user_lower = user_message.lower()
+        if any(word in user_lower for word in ['ship', 'delivery', 'track']):
+            fallback = fallback_responses['shipping']
+        elif any(word in user_lower for word in ['return', 'refund', 'exchange']):
+            fallback = fallback_responses['return']
+        elif any(word in user_lower for word in ['pay', 'payment', 'credit', 'card']):
+            fallback = fallback_responses['payment']
+        else:
+            fallback = fallback_responses['default']
+        
+        return jsonify({
+            "reply": fallback,
+            "success": False,
+            "fallback": True,
+            "error_type": type(e).__name__,
+            "error_message": str(e)
+        }), 200
+
+# ------------------- CHAT WITH CONVERSATION HISTORY -------------------
+@app.route("/chat-with-history", methods=["POST"])
+def chat_with_history():
+    data = request.json
+    user_message = data.get("message", "").strip()
+    conversation_history = data.get("history", [])
+    
+    if not user_message:
+        return jsonify({"error": "Message is required"}), 400
+    
+    try:
+        system_prompt = """You are Emma, MyStore's friendly AI assistant. You help customers with shopping, orders, returns, and general questions. Be helpful, concise, and friendly!"""
+        
+        messages = [{'role': 'system', 'content': system_prompt}]
+        messages.extend(conversation_history[-6:])
+        messages.append({'role': 'user', 'content': user_message})
+        
+        bot_reply = call_huggingface_api(messages, max_tokens=150, temperature=0.7)
+        
+        if bot_reply and bot_reply != "MODEL_LOADING":
+            return jsonify({
+                "reply": bot_reply,
+                "success": True,
+                "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
+            }), 200
+        else:
+            raise Exception("No response from AI")
+        
+    except Exception as e:
+        print(f" Chatbot Error: {str(e)}")
+        return jsonify({
+            "reply": "I'm experiencing technical difficulties. Please try again or contact support@mystore.com 💙",
+            "success": False,
+            "fallback": True
+        }), 200
+
+# ------------------- SMART PRODUCT SEARCH CHATBOT (FakeStore API) -------------------
+@app.route("/chat-product-search", methods=["POST"])
+def chat_product_search():
+    data = request.json
+    user_message = data.get("message", "").strip()
+    
+    if not user_message:
+        return jsonify({"error": "Message is required"}), 400
+    
+    try:
+        print(f" Searching FakeStore API for: {user_message}")
+        
+        # Search FakeStore API
+        fakestore_products = search_fakestore_products(user_message)
+        
+        # Also search your database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT title, price, category, image 
+            FROM Products 
+            WHERE status = 'published' 
+            AND (title ILIKE %s OR category ILIKE %s OR description ILIKE %s)
+            LIMIT 3
+        """, (f'%{user_message}%', f'%{user_message}%', f'%{user_message}%'))
+        
+        db_products = cursor.fetchall()
+        conn.close()
+        
+        all_products = []
+        
+        # Add FakeStore products
+        for p in fakestore_products[:2]:
+            all_products.append({
+                "title": p.get('title', 'Unknown'),
+                "price": float(p.get('price', 0)),
+                "category": p.get('category', 'General'),
+                "image": p.get('image', ''),
+                "source": "fakestore"
+            })
+        
+        # Add database products
+        for p in db_products[:2]:
+            all_products.append({
+                "title": p[0],
+                "price": float(p[1]),
+                "category": p[2],
+                "image": p[3],
+                "source": "mystore"
+            })
+        
+        if all_products:
+            product_info = "\n".join([
+                f"- {p['title']} (${p['price']}) in {p['category']} category"
+                for p in all_products
+            ])
             
-#             return jsonify({
-#                 "reply": response['message']['content'],
-#                 "products": [
-#                     {
-#                         "title": p[0],
-#                         "price": float(p[1]),
-#                         "category": p[2],
-#                         "image": p[3]
-#                     } for p in products
-#                 ],
-#                 "success": True
-#             }), 200
+            enhanced_prompt = f"""You are Emma, MyStore's AI shopping assistant. 
+
+The customer asked: "{user_message}"
+
+We found these relevant products:
+{product_info}
+
+Recommend these products naturally, mention their prices, and be enthusiastic but not pushy! Keep it under 100 words."""
         
-#         system_prompt = """You are Emma, a helpful shopping assistant for MyStore. The customer is asking about products we might not have. Politely let them know and suggest browsing our categories or contacting support."""
+            messages = [
+                {'role': 'system', 'content': enhanced_prompt},
+                {'role': 'user', 'content': user_message}
+            ]
+            
+            bot_reply = call_huggingface_api(messages, max_tokens=200, temperature=0.8)
+            
+            if not bot_reply or bot_reply == "MODEL_LOADING":
+                bot_reply = f"I found {len(all_products)} great products for you! Check them out below. 🛍️"
+            
+            return jsonify({
+                "reply": bot_reply,
+                "products": all_products,
+                "success": True
+            }), 200
         
-#         response = ollama.chat(
-#             model='llama3.2:1b',  
-#             messages=[
-#                 {'role': 'system', 'content': system_prompt},
-#                 {'role': 'user', 'content': user_message}
-#             ]
-#         )
+        # No products found
+        system_prompt = """You are Emma, a helpful shopping assistant for MyStore. The customer is asking about products we don't have. Politely let them know and suggest browsing our categories or contacting support. Keep it friendly and under 50 words."""
         
-#         return jsonify({
-#             "reply": response['message']['content'],
-#             "products": [],
-#             "success": True
-#         }), 200
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_message}
+        ]
         
-#     except Exception as e:
-#         print(f"❌ Product Search Error: {str(e)}")
-#         return jsonify({
-#             "reply": "I'm having trouble searching products right now. Please browse our categories or contact support! 🛍️",
-#             "success": False
-#         }), 200
+        bot_reply = call_huggingface_api(messages)
+        
+        if not bot_reply:
+            bot_reply = "I couldn't find exact matches for that. Try browsing our categories or contact support for help! 🛍️"
+        
+        return jsonify({
+            "reply": bot_reply,
+            "products": [],
+            "success": True
+        }), 200
+        
+    except Exception as e:
+        print(f" Product Search Error: {str(e)}")
+        return jsonify({
+            "reply": "I'm having trouble searching products right now. Please browse our categories or contact support! 🛍️",
+            "success": False
+        }), 200
 
 # ------------------- RUN APP -------------------
 if __name__ == "__main__":

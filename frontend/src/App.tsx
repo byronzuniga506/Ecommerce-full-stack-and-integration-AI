@@ -17,8 +17,8 @@ import ChatBot from './pages/ChatBot';
 import SellerSignup from "./pages/SellerSignup";
 import SellerDashboard from "./components/SellerDashboard";
 import EditProduct from "./components/EditProduct";
-import ForgotPassword from "./pages/ForgotPassword";
 import ContactUs from "./pages/ContactUs";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
@@ -44,6 +44,7 @@ function App() {
         <Route path="/confirmation" element={<OrderConfirmationPage />} />
         <Route path="/contactus" element={<ContactUs />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/seller-forgot-password" element={<ForgotPassword />} />
 
 
         {/* ================================ */}

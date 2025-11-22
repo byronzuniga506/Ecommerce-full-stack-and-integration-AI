@@ -16,46 +16,46 @@ const SellerLogin: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!formData.email || !formData.password) {
-    setPopupMessage("Please enter both email and password");
-    setShowPopup(true);
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const res = await sellerLogin(formData);
-    
-    //  SAVE ALL DATA TO LOCALSTORAGE
-    localStorage.setItem("sellerEmail", formData.email);
-    localStorage.setItem("sellerName", res.data.name);
-    localStorage.setItem("sellerStatus", res.data.status); // ← ADD THIS LINE!
-    
-    setPopupMessage(res.data.message);
-    setShowPopup(true);
-    
-    setTimeout(() => {
-      navigate("/add-product");
-    }, 1500);
-    
-  } catch (err: any) {
-    const errorData = err.response?.data;
-    
-    if (err.response?.status === 403) {
-      setPopupMessage(errorData?.error || "Your account is not approved yet.");
-    } else if (err.response?.status === 401) {
-      setPopupMessage("Invalid email or password");
-    } else {
-      setPopupMessage(errorData?.error || "Login failed. Please try again.");
+    if (!formData.email || !formData.password) {
+      setPopupMessage("Please enter both email and password");
+      setShowPopup(true);
+      return;
     }
-    
-    setShowPopup(true);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    try {
+      const res = await sellerLogin(formData);
+      
+      // SAVE ALL DATA TO LOCALSTORAGE
+      localStorage.setItem("sellerEmail", formData.email);
+      localStorage.setItem("sellerName", res.data.name);
+      localStorage.setItem("sellerStatus", res.data.status);
+      
+      setPopupMessage(res.data.message);
+      setShowPopup(true);
+      
+      setTimeout(() => {
+        navigate("/add-product");
+      }, 1500);
+      
+    } catch (err: any) {
+      const errorData = err.response?.data;
+      
+      if (err.response?.status === 403) {
+        setPopupMessage(errorData?.error || "Your account is not approved yet.");
+      } else if (err.response?.status === 401) {
+        setPopupMessage("Invalid email or password");
+      } else {
+        setPopupMessage(errorData?.error || "Login failed. Please try again.");
+      }
+      
+      setShowPopup(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const closePopup = () => {
     setShowPopup(false);
@@ -90,6 +90,13 @@ const SellerLogin: React.FC = () => {
               required
             />
           </div>
+
+          {/* ✅ ADD FORGOT PASSWORD LINK */}
+          <p className="forgot-password-link" style={{ textAlign: "right", marginTop: "-10px", marginBottom: "15px" }}>
+            <a href="/seller-forgot-password" style={{ color: "#007bff", textDecoration: "none", fontSize: "14px" }}>
+              Forgot Password?
+            </a>
+          </p>
 
           <button type="submit" className="login-btn" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
