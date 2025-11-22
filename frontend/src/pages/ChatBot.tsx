@@ -398,7 +398,7 @@ I can also help you right here! What do you need? 😊`,
             fontWeight: 'bold',
             whiteSpace: 'nowrap',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-          }}>Ask Emma!</span>
+          }}>Ask Saarthi!</span>
         </div>
       )}
 
