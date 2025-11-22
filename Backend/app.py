@@ -37,6 +37,291 @@ otp_store = {}
 # Cache for FakeStore products
 fakestore_cache = {"products": None, "last_fetched": 0}
 
+# ------------------- HARDCODED FAKESTORE PRODUCTS (FALLBACK) -------------------
+# ------------------- PROFESSIONAL DEMO PRODUCTS FOR FREELANCING -------------------
+# All images from Unsplash.com (free for commercial use)
+# Created by: Your Name
+# Safe to use in client demos and portfolios
+
+DEMO_PRODUCTS = [
+    # ELECTRONICS CATEGORY (10 products)
+    {
+        "id": 1,
+        "title": "Premium Wireless Headphones",
+        "price": 149.99,
+        "description": "Immerse yourself in crystal-clear sound with these premium wireless headphones. Features active noise cancellation, 40-hour battery life, and comfortable over-ear design. Perfect for music lovers, travelers, and professionals.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80",
+        "rating": {"rate": 4.8, "count": 342}
+    },
+    {
+        "id": 2,
+        "title": "Smart Fitness Watch",
+        "price": 249.99,
+        "description": "Track your health and fitness goals with advanced heart rate monitoring, GPS tracking, sleep analysis, and 50+ workout modes. Water-resistant up to 50m. Compatible with iOS and Android.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 289}
+    },
+    {
+        "id": 3,
+        "title": "Wireless Bluetooth Speaker",
+        "price": 89.99,
+        "description": "Portable waterproof speaker with 360° sound and deep bass. 24-hour battery life, built-in microphone for calls, and pairs with multiple devices. Perfect for outdoor adventures.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800&q=80",
+        "rating": {"rate": 4.6, "count": 456}
+    },
+    {
+        "id": 4,
+        "title": "4K Action Camera",
+        "price": 299.99,
+        "description": "Capture your adventures in stunning 4K resolution. Waterproof up to 30m, image stabilization, wide-angle lens, and voice control. Includes mounting accessories.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&q=80",
+        "rating": {"rate": 4.9, "count": 178}
+    },
+    {
+        "id": 5,
+        "title": "Mechanical Gaming Keyboard",
+        "price": 159.99,
+        "description": "RGB mechanical keyboard with customizable keys and programmable macros. Tactile switches for precise typing and gaming. Durable aluminum frame with wrist rest.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1595225476474-87563907a212?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 523}
+    },
+    {
+        "id": 6,
+        "title": "Wireless Gaming Mouse",
+        "price": 79.99,
+        "description": "Ultra-precise wireless gaming mouse with 16,000 DPI sensor. Customizable RGB lighting, 6 programmable buttons, and ergonomic design. 70-hour battery life.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800&q=80",
+        "rating": {"rate": 4.5, "count": 392}
+    },
+    {
+        "id": 7,
+        "title": "Portable Power Bank 30000mAh",
+        "price": 49.99,
+        "description": "High-capacity power bank with fast charging technology. Charges up to 3 devices simultaneously. LED display shows remaining battery. Perfect for travel.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=800&q=80",
+        "rating": {"rate": 4.6, "count": 678}
+    },
+    {
+        "id": 8,
+        "title": "Noise Cancelling Earbuds",
+        "price": 129.99,
+        "description": "True wireless earbuds with active noise cancellation and transparency mode. 8-hour battery, wireless charging case, and premium sound quality.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1590658165737-15a047b7b6c8?w=800&q=80",
+        "rating": {"rate": 4.8, "count": 834}
+    },
+    {
+        "id": 9,
+        "title": "HD Webcam with Ring Light",
+        "price": 99.99,
+        "description": "Professional 1080p webcam with built-in ring light and dual microphones. Auto-focus and low-light correction. Perfect for video calls and streaming.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1587826080692-f439cd0b70da?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 412}
+    },
+    {
+        "id": 10,
+        "title": "Laptop Stand Adjustable",
+        "price": 39.99,
+        "description": "Ergonomic aluminum laptop stand with 6 adjustable angles. Improves posture and airflow. Compatible with all laptops 10-17 inches.",
+        "category": "electronics",
+        "image": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800&q=80",
+        "rating": {"rate": 4.5, "count": 289}
+    },
+
+    # MEN'S CLOTHING CATEGORY (8 products)
+    {
+        "id": 11,
+        "title": "Classic Denim Jacket",
+        "price": 79.99,
+        "description": "Timeless denim jacket with a modern fit. 100% cotton, button closure, and multiple pockets. Perfect for casual outings and layering.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=800&q=80",
+        "rating": {"rate": 4.6, "count": 234}
+    },
+    {
+        "id": 12,
+        "title": "Premium Cotton T-Shirt",
+        "price": 29.99,
+        "description": "Soft, breathable 100% organic cotton t-shirt. Classic crew neck design. Available in multiple colors. Perfect for everyday wear.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 567}
+    },
+    {
+        "id": 13,
+        "title": "Slim Fit Chinos",
+        "price": 59.99,
+        "description": "Modern slim-fit chino pants with stretch fabric for comfort. Versatile style suitable for both casual and business casual occasions.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800&q=80",
+        "rating": {"rate": 4.5, "count": 423}
+    },
+    {
+        "id": 14,
+        "title": "Leather Bomber Jacket",
+        "price": 199.99,
+        "description": "Genuine leather bomber jacket with quilted lining. Classic style with ribbed cuffs and hem. Premium quality that ages beautifully.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80",
+        "rating": {"rate": 4.9, "count": 156}
+    },
+    {
+        "id": 15,
+        "title": "Casual Hoodie",
+        "price": 49.99,
+        "description": "Comfortable cotton-blend hoodie with kangaroo pocket and adjustable drawstring hood. Perfect for lounging or outdoor activities.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&q=80",
+        "rating": {"rate": 4.6, "count": 678}
+    },
+    {
+        "id": 16,
+        "title": "Formal Dress Shirt",
+        "price": 69.99,
+        "description": "Crisp white dress shirt with wrinkle-resistant fabric. Perfect fit for business and formal occasions. Easy care and iron-free.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 289}
+    },
+    {
+        "id": 17,
+        "title": "Performance Running Shorts",
+        "price": 34.99,
+        "description": "Lightweight athletic shorts with moisture-wicking fabric and built-in liner. Multiple pockets for storage. Perfect for running and training.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=800&q=80",
+        "rating": {"rate": 4.5, "count": 512}
+    },
+    {
+        "id": 18,
+        "title": "Winter Wool Coat",
+        "price": 249.99,
+        "description": "Elegant wool-blend coat with modern tailored fit. Double-breasted design with interior pockets. Premium warmth and style.",
+        "category": "men's clothing",
+        "image": "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=800&q=80",
+        "rating": {"rate": 4.8, "count": 134}
+    },
+
+    # WOMEN'S CLOTHING CATEGORY (8 products)
+    {
+        "id": 19,
+        "title": "Elegant Summer Dress",
+        "price": 89.99,
+        "description": "Flowing maxi dress in lightweight fabric. Beautiful floral print with adjustable straps. Perfect for summer events and beach getaways.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 445}
+    },
+    {
+        "id": 20,
+        "title": "Yoga Leggings High-Waist",
+        "price": 44.99,
+        "description": "Stretchy high-waisted leggings with tummy control and moisture-wicking fabric. Perfect for yoga, gym, or casual wear. Multiple colors available.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=800&q=80",
+        "rating": {"rate": 4.8, "count": 892}
+    },
+    {
+        "id": 21,
+        "title": "Leather Moto Jacket",
+        "price": 179.99,
+        "description": "Faux leather moto jacket with asymmetric zipper and multiple pockets. Edgy style with comfortable fit. Perfect for cool weather.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80",
+        "rating": {"rate": 4.6, "count": 267}
+    },
+    {
+        "id": 22,
+        "title": "Cozy Knit Sweater",
+        "price": 64.99,
+        "description": "Soft cable-knit sweater in premium wool blend. Oversized fit for maximum comfort. Perfect for layering in cold weather.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=800&q=80",
+        "rating": {"rate": 4.9, "count": 534}
+    },
+    {
+        "id": 23,
+        "title": "Blazer Professional",
+        "price": 129.99,
+        "description": "Tailored blazer with single-button closure. Perfect for office wear or business meetings. Fully lined with structured shoulders.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 312}
+    },
+    {
+        "id": 24,
+        "title": "Denim Skinny Jeans",
+        "price": 69.99,
+        "description": "Classic skinny jeans with stretch denim for comfort. Mid-rise fit with five-pocket styling. Versatile and flattering.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80",
+        "rating": {"rate": 4.6, "count": 678}
+    },
+    {
+        "id": 25,
+        "title": "Silk Blouse",
+        "price": 79.99,
+        "description": "Elegant silk blouse with button-down front. Luxurious feel and drape. Perfect for office or evening wear.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=800&q=80",
+        "rating": {"rate": 4.8, "count": 234}
+    },
+    {
+        "id": 26,
+        "title": "Activewear Sports Bra",
+        "price": 39.99,
+        "description": "High-support sports bra with moisture-wicking fabric and removable pads. Comfortable for high-intensity workouts.",
+        "category": "women's clothing",
+        "image": "https://images.unsplash.com/photo-1609873814058-a8928924184a?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 567}
+    },
+
+    # JEWELRY CATEGORY (4 products)
+    {
+        "id": 27,
+        "title": "Gold Plated Necklace",
+        "price": 89.99,
+        "description": "Delicate 18k gold-plated chain necklace with minimalist pendant. Hypoallergenic and tarnish-resistant. Perfect for everyday wear.",
+        "category": "jewelery",
+        "image": "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&q=80",
+        "rating": {"rate": 4.8, "count": 234}
+    },
+    {
+        "id": 28,
+        "title": "Silver Stud Earrings",
+        "price": 49.99,
+        "description": "Sterling silver stud earrings with cubic zirconia stones. Classic and elegant design. Comes with gift box.",
+        "category": "jewelery",
+        "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&q=80",
+        "rating": {"rate": 4.9, "count": 567}
+    },
+    {
+        "id": 29,
+        "title": "Leather Wrap Bracelet",
+        "price": 34.99,
+        "description": "Handcrafted leather wrap bracelet with silver accents. Adjustable size with magnetic clasp. Unisex design.",
+        "category": "jewelery",
+        "image": "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&q=80",
+        "rating": {"rate": 4.6, "count": 312}
+    },
+    {
+        "id": 30,
+        "title": "Designer Watch Classic",
+        "price": 199.99,
+        "description": "Minimalist watch with genuine leather strap and stainless steel case. Japanese quartz movement. Water-resistant.",
+        "category": "jewelery",
+        "image": "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=800&q=80",
+        "rating": {"rate": 4.7, "count": 445}
+    }
+]
 # ------------------- DATABASE HELPER -------------------
 def get_db_connection():
     """Get PostgreSQL database connection"""
@@ -44,7 +329,7 @@ def get_db_connection():
 
 # ------------------- HUGGING FACE HELPERS -------------------
 def get_fakestore_products():
-    """Fetch and cache products from FakeStore API"""
+    """Fetch and cache products from FakeStore API with hardcoded fallback"""
     current_time = time.time()
     
     # Cache for 5 minutes
@@ -54,8 +339,8 @@ def get_fakestore_products():
     
     # Validate API URL
     if not FAKESTORE_API:
-        print("❌ FAKESTORE_API_URL not configured in .env file")
-        return fakestore_cache.get("products", [])
+        print(" FAKESTORE_API_URL not configured, using hardcoded products")
+        return DEMO_PRODUCTS
     
     try:
         print(f"🔄 Fetching from: {FAKESTORE_API}")
@@ -67,24 +352,25 @@ def get_fakestore_products():
             products = response.json()
             fakestore_cache["products"] = products
             fakestore_cache["last_fetched"] = current_time
-            print(f" Fetched {len(products)} products from FakeStore API")
+            print(f"✅ Fetched {len(products)} products from FakeStore API")
             return products
+        elif response.status_code == 403:
+            print(" FakeStore API blocked (403 Forbidden) - Using hardcoded products")
+            return DEMO_PRODUCTS
         else:
-            print(f" FakeStore API returned status {response.status_code}")
-            print(f"Response: {response.text[:200]}")
+            print(f" FakeStore API returned status {response.status_code} - Using hardcoded products")
+            return DEMO_PRODUCTS
             
     except requests.exceptions.Timeout:
-        print(" FakeStore API request timed out")
+        print(" FakeStore API request timed out - Using hardcoded products")
+        return DEMO_PRODUCTS
     except requests.exceptions.ConnectionError:
-        print(" Failed to connect to FakeStore API - check internet connection")
+        print(" Failed to connect to FakeStore API - Using hardcoded products")
+        return DEMO_PRODUCTS
     except Exception as e:
         print(f" Error fetching FakeStore products: {type(e).__name__} - {str(e)}")
-    
-    # Return cached data if available
-    cached = fakestore_cache.get("products", [])
-    if cached:
-        print(f" Using cached data ({len(cached)} products)")
-    return cached
+        print("   Using hardcoded products as fallback")
+        return DEMO_PRODUCTS
 
 def search_fakestore_products(query):
     """Search FakeStore products by query"""
@@ -1382,38 +1668,37 @@ def get_products():
 # ------------------- ADMIN: SEED DATABASE WITH FAKESTORE PRODUCTS -------------------
 @app.route("/admin/seed-fakestore", methods=["GET"])
 def seed_fakestore():
-    """
-    One-time route to populate database with FakeStore API products
-    Visit: /admin/seed-fakestore to run
-    """
+    """Seed database with professional demo products"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
         # Check if already seeded
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'FakeStore'")
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'Demo Store'")
         existing_count = cursor.fetchone()[0]
         
         if existing_count > 0:
             return jsonify({
-                "message": f" Already seeded! {existing_count} FakeStore products exist in database.",
+                "message": f" Already seeded! {existing_count} demo products exist.",
                 "skipped": True,
                 "existing_count": existing_count
             }), 200
         
-        print("📦 Fetching products from FakeStore API...")
+        print("📦 Seeding database with professional demo products...")
         
-        # Fetch from FakeStore API
-        fakestore_products = get_fakestore_products()
+        # Get demo products
+        demo_products = DEMO_PRODUCTS  # Changed from get_fakestore_products()
         
-        if not fakestore_products or len(fakestore_products) == 0:
-            return jsonify({"error": "Failed to fetch products from FakeStore API"}), 500
+        if not demo_products or len(demo_products) == 0:
+            return jsonify({"error": "No demo products available"}), 500
         
-        print(f"✅ Fetched {len(fakestore_products)} products from FakeStore API")
+        print(f"✅ Found {len(demo_products)} demo products")
         
         # Insert into database
         inserted = 0
-        for product in fakestore_products:
+        errors = []
+        
+        for product in demo_products:
             try:
                 cursor.execute("""
                     INSERT INTO Products (title, price, description, category, image, seller_email, seller_name, status)
@@ -1424,27 +1709,83 @@ def seed_fakestore():
                     product.get('description', 'No description available'),
                     product.get('category', 'general'),
                     product.get('image', 'https://via.placeholder.com/300'),
-                    'fakestore@api.com',
-                    'FakeStore',
+                    'demo@mystoreplatform.com',  
+                    'Demo Store',  
                     'published'
                 ))
                 inserted += 1
             except Exception as e:
-                print(f" Error inserting product: {str(e)}")
+                error_msg = f"Error inserting '{product.get('title', 'Unknown')}': {str(e)}"
+                print(f" {error_msg}")
+                errors.append(error_msg)
                 continue
         
         conn.commit()
         
-        print(f"✅ Successfully inserted {inserted} products into database")
+        print(f"✅ Successfully inserted {inserted}/{len(demo_products)} products")
+        
+        response_data = {
+            "message": f"✅ Successfully seeded database with {inserted} demo products!",
+            "inserted": inserted,
+            "total_available": len(demo_products),
+            "success": True
+        }
+        
+        if errors:
+            response_data["errors"] = errors[:5]
+            response_data["error_count"] = len(errors)
+        
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        import traceback
+        print(f" Error seeding database: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({
+            "error": f"Database error: {str(e)}",
+            "type": type(e).__name__
+        }), 500
+    finally:
+        if conn:
+            conn.close()
+
+# ------------------- ADMIN: CLEAR DEMO PRODUCTS (FOR CLIENT DELIVERY) -------------------
+@app.route("/admin/clear-demo-products", methods=["DELETE"])
+def clear_demo_products():
+    """
+    Remove all demo products before delivering to client.
+    This prepares the database for real products.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Count demo products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'Demo Store'")
+        demo_count = cursor.fetchone()[0]
+        
+        if demo_count == 0:
+            return jsonify({
+                "message": "No demo products found. Database is ready for client!",
+                "deleted": 0,
+                "success": True
+            }), 200
+        
+        # Delete all demo products
+        cursor.execute("DELETE FROM Products WHERE seller_name = 'Demo Store'")
+        conn.commit()
+        
+        print(f"🗑️ Deleted {demo_count} demo products from database")
         
         return jsonify({
-            "message": f"✅ Successfully seeded database with {inserted} FakeStore products!",
-            "inserted": inserted,
-            "success": True
+            "message": f"✅ Cleared {demo_count} demo products. Database ready for client delivery!",
+            "deleted": demo_count,
+            "success": True,
+            "note": "Client can now add their real products"
         }), 200
         
     except Exception as e:
-        print(f" Error seeding database: {str(e)}")
+        print(f"❌ Error clearing demo products: {str(e)}")
         return jsonify({"error": str(e)}), 500
     finally:
         if conn:
@@ -1508,37 +1849,99 @@ def test_fakestore_api():
 # ------------------- ADMIN: CHECK SEED STATUS -------------------
 @app.route("/admin/seed-status", methods=["GET"])
 def seed_status():
-    """
-    Check how many FakeStore products are in database
-    """
+    """Check database product counts"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Count FakeStore products
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'FakeStore'")
-        fakestore_count = cursor.fetchone()[0]
+        # Count demo products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'Demo Store'")
+        demo_count = cursor.fetchone()[0]
         
-        # Count seller products
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name != 'FakeStore'")
+        # Count real seller products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name != 'Demo Store'")
         seller_count = cursor.fetchone()[0]
         
         # Total published products
         cursor.execute("SELECT COUNT(*) FROM Products WHERE status = 'published'")
         total_published = cursor.fetchone()[0]
         
+        # Total draft products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE status = 'draft'")
+        total_draft = cursor.fetchone()[0]
+        
         return jsonify({
-            "fakestore_products": fakestore_count,
+            "demo_products": demo_count,
             "seller_products": seller_count,
             "total_published": total_published,
-            "seeded": fakestore_count > 0
+            "total_draft": total_draft,
+            "total_products": demo_count + seller_count,
+            "is_seeded": demo_count > 0,
+            "client_ready": demo_count == 0 and seller_count > 0
         }), 200
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
-
+# ------------------- ADMIN: CREATE DEMO SELLER ACCOUNT -------------------
+@app.route("/admin/create-demo-seller", methods=["POST"])
+def create_demo_seller():
+    """
+    Create a demo seller account for seeding products.
+    Run this BEFORE seeding products.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        demo_email = "demo@mystoreplatform.com"
+        demo_name = "Demo Store"
+        demo_store_name = "MyStore Demo Collection"
+        demo_description = "Professional demo products for platform demonstration"
+        demo_password = "Demo@123456"  # You can change this
+        
+        # Check if demo seller already exists
+        cursor.execute("SELECT email FROM Sellers WHERE email = %s", (demo_email,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            return jsonify({
+                "message": " Demo seller already exists!",
+                "email": demo_email,
+                "already_exists": True
+            }), 200
+        
+        # Hash password
+        hashed_password = bcrypt.hashpw(demo_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+        # Insert demo seller with APPROVED status
+        cursor.execute("""
+            INSERT INTO Sellers (fullname, store_name, store_description, password, email, status)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (demo_name, demo_store_name, demo_description, hashed_password, demo_email, "Approved"))
+        
+        conn.commit()
+        conn.close()
+        
+        print(f"✅ Demo seller created: {demo_email}")
+        
+        return jsonify({
+            "message": "✅ Demo seller account created successfully!",
+            "email": demo_email,
+            "name": demo_name,
+            "store": demo_store_name,
+            "status": "Approved",
+            "password": demo_password,
+            "success": True,
+            "next_step": "Now you can run /admin/seed-fakestore to add demo products"
+        }), 201
+        
+    except Exception as e:
+        import traceback
+        print(f" Error creating demo seller: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 # ------------------- ADMIN: LIST ALL SELLERS -------------------
 @app.route("/admin/sellers", methods=["GET"])
 def admin_list_sellers():
