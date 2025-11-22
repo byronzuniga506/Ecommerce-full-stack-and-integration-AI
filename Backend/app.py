@@ -29,7 +29,7 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 # ------------------- HUGGING FACE CONFIG -------------------
 HF_API_KEY = os.getenv("HF_API_KEY",)
 HF_API_URL = os.getenv("HF_API_URL")
-FAKESTORE_API = os.getenv("FAKESTORE_API_URL",)
+FAKESTORE_API = os.getenv("FAKESTORE_API_URL")
 
 # In-memory OTP store
 otp_store = {}
@@ -49,20 +49,42 @@ def get_fakestore_products():
     
     # Cache for 5 minutes
     if fakestore_cache["products"] and (current_time - fakestore_cache["last_fetched"]) < 300:
+        print("✅ Returning cached FakeStore products")
         return fakestore_cache["products"]
     
+    # Validate API URL
+    if not FAKESTORE_API:
+        print("❌ FAKESTORE_API_URL not configured in .env file")
+        return fakestore_cache.get("products", [])
+    
     try:
-        response = requests.get(FAKESTORE_API, timeout=5)
+        print(f"🔄 Fetching from: {FAKESTORE_API}")
+        response = requests.get(FAKESTORE_API, timeout=10)
+        
+        print(f"📡 Response Status: {response.status_code}")
+        
         if response.status_code == 200:
             products = response.json()
             fakestore_cache["products"] = products
             fakestore_cache["last_fetched"] = current_time
-            print(f"✅ Fetched {len(products)} products from FakeStore API")
+            print(f" Fetched {len(products)} products from FakeStore API")
             return products
+        else:
+            print(f" FakeStore API returned status {response.status_code}")
+            print(f"Response: {response.text[:200]}")
+            
+    except requests.exceptions.Timeout:
+        print(" FakeStore API request timed out")
+    except requests.exceptions.ConnectionError:
+        print(" Failed to connect to FakeStore API - check internet connection")
     except Exception as e:
-        print(f" Error fetching FakeStore products: {str(e)}")
+        print(f" Error fetching FakeStore products: {type(e).__name__} - {str(e)}")
     
-    return fakestore_cache.get("products", [])
+    # Return cached data if available
+    cached = fakestore_cache.get("products", [])
+    if cached:
+        print(f" Using cached data ({len(cached)} products)")
+    return cached
 
 def search_fakestore_products(query):
     """Search FakeStore products by query"""
@@ -1374,7 +1396,7 @@ def seed_fakestore():
         
         if existing_count > 0:
             return jsonify({
-                "message": f"⚠️ Already seeded! {existing_count} FakeStore products exist in database.",
+                "message": f" Already seeded! {existing_count} FakeStore products exist in database.",
                 "skipped": True,
                 "existing_count": existing_count
             }), 200
@@ -1408,7 +1430,7 @@ def seed_fakestore():
                 ))
                 inserted += 1
             except Exception as e:
-                print(f"⚠️ Error inserting product: {str(e)}")
+                print(f" Error inserting product: {str(e)}")
                 continue
         
         conn.commit()
@@ -1422,11 +1444,66 @@ def seed_fakestore():
         }), 200
         
     except Exception as e:
-        print(f"❌ Error seeding database: {str(e)}")
+        print(f" Error seeding database: {str(e)}")
         return jsonify({"error": str(e)}), 500
     finally:
         if conn:
             conn.close()
+
+# ------------------- DEBUG: TEST FAKESTORE API CONNECTION -------------------
+@app.route("/debug/test-fakestore-api", methods=["GET"])
+def test_fakestore_api():
+    """Test direct connection to FakeStore API"""
+    import traceback
+    
+    result = {
+        "fakestore_url": FAKESTORE_API,
+        "url_configured": bool(FAKESTORE_API),
+        "test_results": {}
+    }
+    
+    if not FAKESTORE_API:
+        result["error"] = " FAKESTORE_API_URL not configured in .env file"
+        result["fix"] = "Add FAKESTORE_API_URL=\"https://fakestoreapi.com/products?limit=100\" to your .env file"
+        return jsonify(result), 500
+    
+    try:
+        print(f"🧪 Testing FakeStore API: {FAKESTORE_API}")
+        
+        response = requests.get(FAKESTORE_API, timeout=10)
+        
+        result["test_results"] = {
+            "status_code": response.status_code,
+            "success": response.status_code == 200,
+            "response_size": len(response.content),
+            "content_type": response.headers.get('Content-Type', 'unknown')
+        }
+        
+        if response.status_code == 200:
+            products = response.json()
+            result["test_results"]["products_count"] = len(products)
+            result["test_results"]["sample_product"] = products[0] if products else None
+            result["message"] = f"✅ SUCCESS! Fetched {len(products)} products"
+        else:
+            result["error"] = f" API returned status {response.status_code}"
+            result["response_text"] = response.text[:200]
+        
+        return jsonify(result), 200
+        
+    except requests.exceptions.Timeout:
+        result["error"] = " Request timed out - API took too long to respond"
+        return jsonify(result), 500
+        
+    except requests.exceptions.ConnectionError as e:
+        result["error"] = f" Connection failed - check internet connection"
+        result["details"] = str(e)
+        return jsonify(result), 500
+        
+    except Exception as e:
+        result["error"] = f" Unexpected error: {type(e).__name__}"
+        result["details"] = str(e)
+        result["traceback"] = traceback.format_exc()
+        return jsonify(result), 500
 
 # ------------------- ADMIN: CHECK SEED STATUS -------------------
 @app.route("/admin/seed-status", methods=["GET"])
