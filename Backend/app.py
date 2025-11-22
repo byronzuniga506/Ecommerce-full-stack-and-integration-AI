@@ -240,7 +240,7 @@ def home():
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "healthy", "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')}), 200
-    
+
 # ------------------- SIGNUP -------------------
 @app.route("/signup", methods=["POST"])
 def signup():
@@ -1326,13 +1326,15 @@ def get_seller_activity():
     finally:
         conn.close()
 
-# ------------------- FETCH PRODUCTS -------------------
+# ------------------- FETCH PRODUCTS (ALL: FAKESTORE + SELLERS) -------------------
 @app.route("/products", methods=["GET"])
 def get_products():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, title, price, description, category, image FROM Products WHERE status = 'published'")
+        
+        # Get ALL published products (FakeStore + Seller products)
+        cursor.execute("SELECT id, title, price, description, category, image FROM Products WHERE status = 'published' ORDER BY id DESC")
         rows = cursor.fetchall()
 
         products = [
@@ -1347,7 +1349,166 @@ def get_products():
             }
             for row in rows
         ]
-        return jsonify(products)
+        
+        return jsonify(products), 200
+        
+    except Exception as e:
+        print(f" Error fetching products: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+# ------------------- ADMIN: SEED DATABASE WITH FAKESTORE PRODUCTS -------------------
+@app.route("/admin/seed-fakestore", methods=["GET"])
+def seed_fakestore():
+    """
+    One-time route to populate database with FakeStore API products
+    Visit: /admin/seed-fakestore to run
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if already seeded
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'FakeStore'")
+        existing_count = cursor.fetchone()[0]
+        
+        if existing_count > 0:
+            return jsonify({
+                "message": f"⚠️ Already seeded! {existing_count} FakeStore products exist in database.",
+                "skipped": True,
+                "existing_count": existing_count
+            }), 200
+        
+        print("📦 Fetching products from FakeStore API...")
+        
+        # Fetch from FakeStore API
+        fakestore_products = get_fakestore_products()
+        
+        if not fakestore_products or len(fakestore_products) == 0:
+            return jsonify({"error": "Failed to fetch products from FakeStore API"}), 500
+        
+        print(f"✅ Fetched {len(fakestore_products)} products from FakeStore API")
+        
+        # Insert into database
+        inserted = 0
+        for product in fakestore_products:
+            try:
+                cursor.execute("""
+                    INSERT INTO Products (title, price, description, category, image, seller_email, seller_name, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    product.get('title', 'Unknown Product'),
+                    float(product.get('price', 0)),
+                    product.get('description', 'No description available'),
+                    product.get('category', 'general'),
+                    product.get('image', 'https://via.placeholder.com/300'),
+                    'fakestore@api.com',
+                    'FakeStore',
+                    'published'
+                ))
+                inserted += 1
+            except Exception as e:
+                print(f"⚠️ Error inserting product: {str(e)}")
+                continue
+        
+        conn.commit()
+        
+        print(f"✅ Successfully inserted {inserted} products into database")
+        
+        return jsonify({
+            "message": f"✅ Successfully seeded database with {inserted} FakeStore products!",
+            "inserted": inserted,
+            "success": True
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error seeding database: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+# ------------------- ADMIN: CHECK SEED STATUS -------------------
+@app.route("/admin/seed-status", methods=["GET"])
+def seed_status():
+    """
+    Check how many FakeStore products are in database
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Count FakeStore products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'FakeStore'")
+        fakestore_count = cursor.fetchone()[0]
+        
+        # Count seller products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name != 'FakeStore'")
+        seller_count = cursor.fetchone()[0]
+        
+        # Total published products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE status = 'published'")
+        total_published = cursor.fetchone()[0]
+        
+        return jsonify({
+            "fakestore_products": fakestore_count,
+            "seller_products": seller_count,
+            "total_published": total_published,
+            "seeded": fakestore_count > 0
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+# ------------------- ADMIN: LIST ALL SELLERS -------------------
+@app.route("/admin/sellers", methods=["GET"])
+def admin_list_sellers():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT email, fullname, status, store_name FROM Sellers ORDER BY id DESC")
+        sellers = cursor.fetchall()
+        
+        return jsonify({
+            "total": len(sellers),
+            "sellers": [
+                {
+                    "email": s[0],
+                    "name": s[1],
+                    "status": s[2],
+                    "store": s[3]
+                } for s in sellers
+            ]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+# ------------------- ADMIN: APPROVE SELLER -------------------
+@app.route("/admin/approve/<email>", methods=["GET"])
+def admin_approve_seller(email):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("UPDATE Sellers SET status = %s WHERE email = %s RETURNING fullname", ('Approved', email))
+        result = cursor.fetchone()
+        
+        if not result:
+            return jsonify({"error": "Seller not found"}), 404
+        
+        conn.commit()
+        
+        return jsonify({
+            "message": f"✅ Seller '{result[0]}' ({email}) approved successfully!",
+            "success": True
+        }), 200
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -1798,4 +1959,5 @@ Recommend these products naturally, mention their prices, and be enthusiastic bu
 
 # ------------------- RUN APP -------------------
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
