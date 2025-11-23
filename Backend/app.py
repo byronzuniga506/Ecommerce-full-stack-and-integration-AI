@@ -1749,48 +1749,6 @@ def seed_fakestore():
         if conn:
             conn.close()
 
-# ------------------- ADMIN: CLEAR DEMO PRODUCTS (FOR CLIENT DELIVERY) -------------------
-@app.route("/admin/clear-demo-products", methods=["DELETE"])
-def clear_demo_products():
-    """
-    Remove all demo products before delivering to client.
-    This prepares the database for real products.
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Count demo products
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'Demo Store'")
-        demo_count = cursor.fetchone()[0]
-        
-        if demo_count == 0:
-            return jsonify({
-                "message": "No demo products found. Database is ready for client!",
-                "deleted": 0,
-                "success": True
-            }), 200
-        
-        # Delete all demo products
-        cursor.execute("DELETE FROM Products WHERE seller_name = 'Demo Store'")
-        conn.commit()
-        
-        print(f"🗑️ Deleted {demo_count} demo products from database")
-        
-        return jsonify({
-            "message": f"✅ Cleared {demo_count} demo products. Database ready for client delivery!",
-            "deleted": demo_count,
-            "success": True,
-            "note": "Client can now add their real products"
-        }), 200
-        
-    except Exception as e:
-        print(f"❌ Error clearing demo products: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if conn:
-            conn.close()
-
 # ------------------- DEBUG: TEST FAKESTORE API CONNECTION -------------------
 @app.route("/debug/test-fakestore-api", methods=["GET"])
 def test_fakestore_api():
@@ -1849,99 +1807,37 @@ def test_fakestore_api():
 # ------------------- ADMIN: CHECK SEED STATUS -------------------
 @app.route("/admin/seed-status", methods=["GET"])
 def seed_status():
-    """Check database product counts"""
+    """
+    Check how many FakeStore products are in database
+    """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Count demo products
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'Demo Store'")
-        demo_count = cursor.fetchone()[0]
+        # Count FakeStore products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name = 'FakeStore'")
+        fakestore_count = cursor.fetchone()[0]
         
-        # Count real seller products
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name != 'Demo Store'")
+        # Count seller products
+        cursor.execute("SELECT COUNT(*) FROM Products WHERE seller_name != 'FakeStore'")
         seller_count = cursor.fetchone()[0]
         
         # Total published products
         cursor.execute("SELECT COUNT(*) FROM Products WHERE status = 'published'")
         total_published = cursor.fetchone()[0]
         
-        # Total draft products
-        cursor.execute("SELECT COUNT(*) FROM Products WHERE status = 'draft'")
-        total_draft = cursor.fetchone()[0]
-        
         return jsonify({
-            "demo_products": demo_count,
+            "fakestore_products": fakestore_count,
             "seller_products": seller_count,
             "total_published": total_published,
-            "total_draft": total_draft,
-            "total_products": demo_count + seller_count,
-            "is_seeded": demo_count > 0,
-            "client_ready": demo_count == 0 and seller_count > 0
+            "seeded": fakestore_count > 0
         }), 200
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
-# ------------------- ADMIN: CREATE DEMO SELLER ACCOUNT -------------------
-@app.route("/admin/create-demo-seller", methods=["POST"])
-def create_demo_seller():
-    """
-    Create a demo seller account for seeding products.
-    Run this BEFORE seeding products.
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        demo_email = "demo@mystoreplatform.com"
-        demo_name = "Demo Store"
-        demo_store_name = "MyStore Demo Collection"
-        demo_description = "Professional demo products for platform demonstration"
-        demo_password = "Demo@123456"  # You can change this
-        
-        # Check if demo seller already exists
-        cursor.execute("SELECT email FROM Sellers WHERE email = %s", (demo_email,))
-        existing = cursor.fetchone()
-        
-        if existing:
-            return jsonify({
-                "message": " Demo seller already exists!",
-                "email": demo_email,
-                "already_exists": True
-            }), 200
-        
-        # Hash password
-        hashed_password = bcrypt.hashpw(demo_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        
-        # Insert demo seller with APPROVED status
-        cursor.execute("""
-            INSERT INTO Sellers (fullname, store_name, store_description, password, email, status)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (demo_name, demo_store_name, demo_description, hashed_password, demo_email, "Approved"))
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"✅ Demo seller created: {demo_email}")
-        
-        return jsonify({
-            "message": "✅ Demo seller account created successfully!",
-            "email": demo_email,
-            "name": demo_name,
-            "store": demo_store_name,
-            "status": "Approved",
-            "password": demo_password,
-            "success": True,
-            "next_step": "Now you can run /admin/seed-fakestore to add demo products"
-        }), 201
-        
-    except Exception as e:
-        import traceback
-        print(f" Error creating demo seller: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+
 # ------------------- ADMIN: LIST ALL SELLERS -------------------
 @app.route("/admin/sellers", methods=["GET"])
 def admin_list_sellers():
@@ -2328,8 +2224,7 @@ def chat_with_history():
             "fallback": True
         }), 200
 
-
-# ------------------- SMART PRODUCT SEARCH CHATBOT (DATABASE ONLY) -------------------
+# ------------------- SMART PRODUCT SEARCH CHATBOT (FakeStore API) -------------------
 @app.route("/chat-product-search", methods=["POST"])
 def chat_product_search():
     data = request.json
@@ -2339,39 +2234,47 @@ def chat_product_search():
         return jsonify({"error": "Message is required"}), 400
     
     try:
-        print(f"🔍 Searching database for: {user_message}")
+        print(f" Searching FakeStore API for: {user_message}")
         
-        # ONLY search your database (no more FakeStore API)
+        # Search FakeStore API
+        fakestore_products = search_fakestore_products(user_message)
+        
+        # Also search your database
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT title, price, category, image, id
+            SELECT title, price, category, image 
             FROM Products 
             WHERE status = 'published' 
             AND (title ILIKE %s OR category ILIKE %s OR description ILIKE %s)
-            LIMIT 5
+            LIMIT 3
         """, (f'%{user_message}%', f'%{user_message}%', f'%{user_message}%'))
         
         db_products = cursor.fetchall()
         conn.close()
         
-        print(f"   💾 Database found: {len(db_products)} products")
-        
         all_products = []
         
-        # Add database products (no duplicates!)
-        for p in db_products:
+        # Add FakeStore products
+        for p in fakestore_products[:2]:
             all_products.append({
-                "id": p[4],
+                "title": p.get('title', 'Unknown'),
+                "price": float(p.get('price', 0)),
+                "category": p.get('category', 'General'),
+                "image": p.get('image', ''),
+                "source": "fakestore"
+            })
+        
+        # Add database products
+        for p in db_products[:2]:
+            all_products.append({
                 "title": p[0],
                 "price": float(p[1]),
                 "category": p[2],
                 "image": p[3],
                 "source": "mystore"
             })
-        
-        print(f"   ✅ Total products to return: {len(all_products)}")
         
         if all_products:
             product_info = "\n".join([
@@ -2383,7 +2286,7 @@ def chat_product_search():
 
 The customer asked: "{user_message}"
 
-We found these products in our store:
+We found these relevant products:
 {product_info}
 
 Recommend these products naturally, mention their prices, and be enthusiastic but not pushy! Keep it under 100 words."""
@@ -2401,16 +2304,10 @@ Recommend these products naturally, mention their prices, and be enthusiastic bu
             return jsonify({
                 "reply": bot_reply,
                 "products": all_products,
-                "success": True,
-                "debug": {
-                    "database_count": len(db_products),
-                    "total_returned": len(all_products)
-                }
+                "success": True
             }), 200
         
         # No products found
-        print(f"    No products found for: {user_message}")
-        
         system_prompt = """You are Emma, a helpful shopping assistant for MyStore. The customer is asking about products we don't have. Politely let them know and suggest browsing our categories or contacting support. Keep it friendly and under 50 words."""
         
         messages = [
@@ -2426,24 +2323,14 @@ Recommend these products naturally, mention their prices, and be enthusiastic bu
         return jsonify({
             "reply": bot_reply,
             "products": [],
-            "success": True,
-            "debug": {
-                "database_count": 0,
-                "message": "No products found"
-            }
+            "success": True
         }), 200
         
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
         print(f" Product Search Error: {str(e)}")
-        print(error_trace)
-        
         return jsonify({
             "reply": "I'm having trouble searching products right now. Please browse our categories or contact support! 🛍️",
-            "success": False,
-            "error": str(e),
-            "error_type": type(e).__name__
+            "success": False
         }), 200
 
 # ------------------- RUN APP -------------------

@@ -457,7 +457,7 @@ def main_menu():
             break
         
         else:
-            print("❌ Invalid choice!")
+            print(" Invalid choice!")
 
 # ================= RUN =================
 if __name__ == "__main__":
